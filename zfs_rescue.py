@@ -40,8 +40,9 @@ from os import path
 BLK_PROXY_ADDR = ("localhost", 24892)       # network block server
 # BLK_PROXY_ADDR = ("files:", "disks.tab")  # local device nodes
 
-BLK_INITIAL_DISK = "/dev/dsk/c3t0d0s7"      # device to read the label from
-TXG = -1                                    # select specific transaction or -1 for the active one
+BLK_INITIAL_DISK = "/dev/disk/by-id/ata-WDC_WD30EFRX-68EUZN0_WD-WCC4N1KPRKPX-part1"      # device to read the label from
+TXG = 108199        # 108324                           # select specific transaction or -1 for the active one
+# 108324    12 Mar 2018 17:33:06    1520872386
 
 TEMP_DIR = "/tmp"
 OUTPUT_DIR = "rescued"
@@ -66,42 +67,55 @@ pool_dev = RaidzDevice(all_disks, 1, BLK_PROXY_ADDR, bad=[3], repair=True, dump_
 
 print("[+] Loading uberblocks from child vdevs")
 uberblocks = {}
-for disk in all_disks:
+for disk in all_disks[1:]:
     bp = BlockProxy(BLK_PROXY_ADDR)
     l0 = Label(bp, disk)
     l0.read(0)
     l1 = Label(bp, disk)
     l1.read(1)
     ub = l0.find_active_ub()
+    print("L0:")
+    l0.debug(show_uberblocks=True);
+    print("L1:")
+    l1.debug(show_uberblocks=True);
     ub_found = " (active UB txg {})".format(ub.txg) if ub is not None else ""
     print("[+]  Disk {}: L0 txg {}{}, L1 txg {}".format(disk, l0.get_txg(), ub_found, l1.get_txg()))
     uberblocks[disk] = ub
 
-# print("\n[+] Active uberblocks:")
-# for disk in uberblocks.keys():
-#     print(disk)
+print("\n[+] Active uberblocks:")
+for disk in uberblocks.keys():
+     print(disk)
 #     uberblocks[disk].debug()
 
-ub = id_l.find_ub_txg(TXG)
-if ub:
-    root_blkptr = ub.rootbp
-    print("[+] Selected uberblock with txg", TXG)
-else:
-    root_blkptr = uberblocks[BLK_INITIAL_DISK].rootbp
-    print("[+] Selected active uberblock from initial disk")
+# 108193 working
 
-print("[+] Reading MOS: {}".format(root_blkptr))
+for TXG in [108320, 108193, 108322, 108195, 108324, 108325, 108326, 108199, 108328, 108201, 108330, 108331, 108332, 108173, 108334, 108207]:
 
-datasets = {}
+    try:
+        ub = id_l.find_ub_txg(TXG)
+        if ub:
+            root_blkptr = ub.rootbp
+            print("[+] Selected uberblock with txg", TXG)
+        else:
+            root_blkptr = uberblocks[BLK_INITIAL_DISK].rootbp
+            print("[+] Selected active uberblock from initial disk")
+            
+        print("[+] Reading MOS: {}".format(root_blkptr))
 
-# Try all copies of the MOS
-for dva in range(3):
-    mos = ObjectSet(pool_dev, root_blkptr, dva=dva)
-    for n in range(len(mos)):
-        d = mos[n]
-        # print("[+]  dnode[{:>3}]={}".format(n, d))
-        if d and d.type == 16:
-            datasets[n] = d
+        datasets = {}
+        
+        # Try all copies of the MOS
+        for dva in range(3):
+            mos = ObjectSet(pool_dev, root_blkptr, dva=dva)
+            for n in range(len(mos)):
+                d = mos[n]
+                # print("[+]  dnode[{:>3}]={}".format(n, d))
+                if d and d.type == 16:
+                    datasets[n] = d
+    except:
+        pass
+
+                
 
 print("[+] {} datasets found".format(len(datasets)))
 
