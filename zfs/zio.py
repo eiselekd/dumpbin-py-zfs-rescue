@@ -29,6 +29,7 @@
 
 from block_proxy.proxy import BlockProxy
 from zfs.lzjb import lzjb_decompress
+from zfs.lz4 import lz4_decompress
 
 from os import path
 
@@ -65,13 +66,17 @@ class GenericDevice:
             print("[+] Reading block at {}:{}".format(hex(offset)[2:], hex(psize)[2:]))
         data = self._read_physical(offset, psize, debug_dump, debug_prefix)
         if bptr.compressed:
-            if bptr.comp_alg in [1, 3]:
-                if self._verbose >= LOG_VERBOSE:
-                    print("[+]  Decompressing with LZJB")
-                try:
-                    data = lzjb_decompress(data, lsize)
-                except:
-                    data = None
+            if bptr.comp_alg in [1, 3, 15]:
+                if bptr.comp_alg == 15:
+                    print("[-] lz4 decompress")
+                    raise RuntimeError("not implemented")
+                else:
+                    if self._verbose >= LOG_VERBOSE:
+                        print("[+]  Decompressing with LZJB")
+                    try:
+                        data = lzjb_decompress(data, lsize)
+                    except:
+                        data = None
                 if data is None:
                     if self._verbose >= LOG_VERBOSE:
                         print("[-]   Decompression failed")
