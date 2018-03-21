@@ -112,7 +112,8 @@ for TXG in [108320, 108193, 108322, 108195, 108324, 108325, 108326, 108199, 1083
                 # print("[+]  dnode[{:>3}]={}".format(n, d))
                 if d and d.type == 16:
                     datasets[n] = d
-    except:
+    except Exception as e:
+        print("Failed %s" %(str(e)))
         pass
 
                 

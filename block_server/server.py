@@ -35,6 +35,7 @@ B{Block server}
 Provides remote clients with access to the local disks.
 """
 
+import os
 from socketserver import TCPServer, BaseRequestHandler
 import struct
 
@@ -42,7 +43,7 @@ SERVER_ADDRESS = "localhost"
 SERVER_PORT = 24892
 
 trans_table = {}
-verbose = False
+verbose = True
 
 
 class BlockTCPHandler(BaseRequestHandler):
@@ -83,11 +84,12 @@ class BlockTCPHandler(BaseRequestHandler):
         if path in trans_table.keys():
             path = trans_table[path]
         if verbose:
-            print("[+] Block server: {} -- {}/{}".format(path, offset, count))
-        f = open(path, 'rb')
-        f.seek(offset)
-        data = f.read(count)
-        f.close()
+            print("[+] Block server: %s -- 0x%x/0x%x" %(path, offset, count))
+        fd = os.open(path, os.O_RDONLY)
+        #f.seek(offset)
+        #data = f.read(count)
+        data = os.pread(fd, count, offset)
+        os.close(fd)
         if verbose:
             print("[+]  Read {} bytes".format(len(data)))
         return data

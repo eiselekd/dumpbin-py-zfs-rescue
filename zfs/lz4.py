@@ -9,7 +9,9 @@ def lz4_decompress(src, dlen, dst=None):
     """
     if dst is None:
         dst = bytearray()
-    d=lz4.decompress(src)
+    print(str(src))
+    b = bytes(src)
+    d=lz4.decompress(b)
     l=len(d)
     if (dlen != l):
         print("[-] decompress size differ from %d, got %d" %(dlen,l))

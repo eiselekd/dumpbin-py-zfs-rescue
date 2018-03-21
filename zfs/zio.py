@@ -54,6 +54,7 @@ class GenericDevice:
         self._verbose = level
 
     def read_block(self, bptr, dva=0, debug_dump=False, debug_prefix="block"):
+        debug_dump=True
         if bptr.get_dva(dva).gang:
             # TODO: Implement gang blocks
             raise NotImplementedError("Gang blocks are still not supported")
@@ -68,8 +69,17 @@ class GenericDevice:
         if bptr.compressed:
             if bptr.comp_alg in [1, 3, 15]:
                 if bptr.comp_alg == 15:
-                    print("[-] lz4 decompress")
-                    raise RuntimeError("not implemented")
+                    if self._verbose >= LOG_VERBOSE:
+                        print("[+]  Decompressing with LZ4")
+                    try:
+                        if debug_dump:
+                            f = open(path.join(self._dump_dir, "{}.{}.lz4".format(debug_prefix,lsize)), "wb")
+                            f.write(data)
+                            f.close()
+                        data = lz4_decompress(data, lsize)
+                    except Exception as e:
+                        print("[-] lz4 decompress error %s" %(str(e)))
+                        data = None
                 else:
                     if self._verbose >= LOG_VERBOSE:
                         print("[+]  Decompressing with LZJB")
