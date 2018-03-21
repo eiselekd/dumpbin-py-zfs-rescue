@@ -93,10 +93,11 @@ class UBArray:
 
     def parse(self, data):
         stream = BytesIO(data)
-        num_blocks = len(data) >> 10
+        print("Todo: need to adiust to vset's size");
+        num_blocks = len(data) >> 10 # need to adiust to vset's size
         self._blocks = []
         for i in range(num_blocks):
-            block_data = stream.read(1024)
+            block_data = stream.read(1024) # need to adiust to vset's size
             ublock = Uberblock()
             ublock.parse(block_data)
             self._blocks.append(ublock)
