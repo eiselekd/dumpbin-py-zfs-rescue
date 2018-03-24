@@ -41,6 +41,8 @@ BLK_PROXY_ADDR = ("localhost", 24892)       # network block server
 # BLK_PROXY_ADDR = ("files:", "disks.tab")  # local device nodes
 
 BLK_INITIAL_DISK = "/dev/disk/by-id/ata-WDC_WD30EFRX-68EUZN0_WD-WCC4N1KPRKPX-part1"      # device to read the label from
+#BLK_INITIAL_DISK = "/dev/disk/by-id/ata-WDC_WD30EZRX-00D8PB0_WD-WMC4N1642572-part1"      # device to read the label from
+#BLK_INITIAL_DISK = "/dev/disk/by-id/ata-WDC_WD30EFRX-68EUZN0_WD-WCC4N7ZXC1E0-part1"      # device to read the label from
 TXG = 108199        # 108324                           # select specific transaction or -1 for the active one
 # 108324    12 Mar 2018 17:33:06    1520872386
 
@@ -89,7 +91,7 @@ for disk in uberblocks.keys():
 
 # 108193 working
 
-for TXG in [108320, 108193, 108322, 108195, 108324, 108325, 108326, 108199, 108328, 108201, 108330, 108331, 108332, 108173, 108334, 108207]:
+for TXG in [108193, 108199, 108320,  108322, 108195, 108324, 108325, 108326, 108328, 108201, 108330, 108331, 108332, 108173, 108334, 108207]:
 
     try:
         ub = id_l.find_ub_txg(TXG)
@@ -106,7 +108,11 @@ for TXG in [108320, 108193, 108322, 108195, 108324, 108325, 108326, 108199, 1083
         
         # Try all copies of the MOS
         for dva in range(3):
-            mos = ObjectSet(pool_dev, root_blkptr, dva=dva)
+            try:
+                mos = ObjectSet(pool_dev, root_blkptr, dva=dva)
+            except Exception as e:
+                print("Failed %s" %(str(e)))
+                continue
             for n in range(len(mos)):
                 d = mos[n]
                 # print("[+]  dnode[{:>3}]={}".format(n, d))

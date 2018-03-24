@@ -69,9 +69,11 @@ class BlockPtr:
         self._lsize = None
         self._psize = None
         self._comp = None
+        self._embeded = None
         self._cksum = None
         self._type = None
         self._lvl = None
+        self._encrypted = None
         self._E = None
         self._birth_txg = None
         self._fill_count = None
@@ -87,9 +89,11 @@ class BlockPtr:
         self._lsize = (1 + (qwords[6] & 0xffff)) << 9
         self._psize = (1 + ((qwords[6] >> 16) & 0xffff)) << 9
         self._comp = (qwords[6] >> 32) & 0xff
+        self._embeded = (qwords[6] >> 39) & 0x1
         self._cksum = (qwords[6] >> 40) & 0xff
         self._type = (qwords[6] >> 48) & 0xff
         self._lvl = (qwords[6] >> 56) & 0x7f
+        self._encrypted = (qwords[6] >> 61) & 0x1;
         self._E = qwords[6] >> 63
         self._birth_txg = qwords[10]
         self._fill_count = qwords[11]
