@@ -216,7 +216,7 @@ class RaidzDevice(GenericDevice):
             print("[-] Raidz created with more bad disks than parity allows!")
 
     def _read_physical(self, offset, psize, debug_dump, debug_prefix):
-        (cols, firstdatacol, skipstart) = self._map_alloc(offset, psize, 9) # 9
+        (cols, firstdatacol, skipstart) = self._map_alloc(offset, psize, 12) # 9
         col_data = []
         blockv = []
         for c in range(len(cols)):
