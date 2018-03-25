@@ -115,7 +115,7 @@ for TXG in [108193, 108199, 108320,  108322, 108195, 108324, 108325, 108326, 108
                 continue
             for n in range(len(mos)):
                 d = mos[n]
-                # print("[+]  dnode[{:>3}]={}".format(n, d))
+                print("[+]  dnode[{:>3}]={}".format(n, d))
                 if d and d.type == 16:
                     datasets[n] = d
     except Exception as e:
@@ -140,6 +140,7 @@ for dsid in datasets:
     if dsid not in DS_SKIP_TRAVERSE:
         ddss.export_file_list(path.join(OUTPUT_DIR, "ds_{}_filelist.csv".format(dsid)))
 
+DS_TO_ARCHIVE = [42];
 for dsid in DS_TO_ARCHIVE:
     ddss = Dataset(pool_dev, datasets[dsid], dva=1)
     ddss.analyse()

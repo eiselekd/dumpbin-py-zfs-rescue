@@ -109,14 +109,8 @@
 
 //#include <sys/zfs_context.h>
 
-static int real_LZ4_compress(const char *source, char *dest, int isize,
-    int osize);
 static int LZ4_uncompress_unknownOutputSize(const char *source, char *dest,
     int isize, int maxOutputSize);
-static int LZ4_compressCtx(void *ctx, const char *source, char *dest,
-    int isize, int osize);
-static int LZ4_compress64kCtx(void *ctx, const char *source, char *dest,
-    int isize, int osize);
 
 
 /*ARGSUSED*/
@@ -124,6 +118,7 @@ int
 lz4_decompress_zfs(void *s_start, void *d_start, size_t s_len,
     size_t d_len, int n)
 {
+    (void)n;
 	const char *src = s_start;
 	uint32_t bufsiz = BE_IN32(src);
 
@@ -601,27 +596,37 @@ static const int hdr_size = sizeof(uint32_t);
 static PyObject *py_lz4_uncompress(PyObject *self, PyObject *args) {
     PyObject *result;
     const char *source;
-    int source_size;
-    uint32_t dest_size;
+    long source_size = 0; int buf_size;
+    long dest_size = 0;
+    (void) self;
 
-    if (!PyArg_ParseTuple(args, "s#", &source, &source_size)) {
+    if (!PyArg_ParseTuple(args, "s#l", &source, &buf_size, &dest_size)) {
         return NULL;
     }
 
-    if (source_size < hdr_size) {
+    source_size = BE_IN32(source);
+
+    if (source_size > buf_size) {
         PyErr_SetString(PyExc_ValueError, "input too short");
         return NULL;
     }
-    dest_size = load_le32(source);
-    if (dest_size > INT_MAX) {
-        PyErr_Format(PyExc_ValueError, "invalid size in header: 0x%x", dest_size);
+
+    if (source_size > INT_MAX) {
+        PyErr_Format(PyExc_ValueError, "invalid size in header: 0x%x", source_size);
         return NULL;
     }
+
+    printf("[+] %ld => %d\n", source_size, dest_size); fflush(stdout);
+
     result = PyBytes_FromStringAndSize(NULL, dest_size);
     if (result != NULL && dest_size > 0) {
         char *dest = PyBytes_AS_STRING(result);
-        int osize = LZ4_decompress_safe(source + hdr_size, dest, source_size - hdr_size, dest_size);
+
+	int osize = LZ4_uncompress_unknownOutputSize(source + hdr_size,
+						 dest, source_size, dest_size);
+
         if (osize < 0) {
+
             PyErr_Format(PyExc_ValueError, "corrupt input at byte %d", -osize);
             Py_CLEAR(result);
         }

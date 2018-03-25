@@ -1,3 +1,7 @@
+import os, sys
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "python-lz4-0.7.0+dfsg/build/lib.linux-x86_64-3.5"))
+
+# size indicator is big endian and depice source size, use own routine
 import lz4zfs
 
 def lz4_decompress(src, dlen, dst=None):
@@ -11,7 +15,7 @@ def lz4_decompress(src, dlen, dst=None):
         dst = bytearray()
     print(str(src))
     b = bytes(src)
-    d=lz4zfs.decompress(b)
+    d=lz4zfs.decompress(b,dlen)
     l=len(d)
     if (dlen != l):
         print("[-] decompress size differ from %d, got %d" %(dlen,l))

@@ -150,8 +150,8 @@ class GenericDevice:
                             f = open(path.join(self._dump_dir, "{}.{}.lz4".format(debug_prefix,lsize)), "wb")
                             f.write(data)
                             f.close()
-                        if (len(data)>psize):
-                            data=data[4:psize];
+                        #if (len(data)>psize):
+                        #    data=data[0:psize];
                         data = lz4_decompress(data, lsize)
                     except Exception as e:
                         print("[-] lz4 decompress error %s" %(str(e)))
