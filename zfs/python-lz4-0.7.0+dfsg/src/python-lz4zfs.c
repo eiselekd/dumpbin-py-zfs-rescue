@@ -626,6 +626,7 @@ static PyObject *py_lz4_uncompress(PyObject *self, PyObject *args) {
 						 dest, source_size, dest_size);
 
         if (osize < 0) {
+            printf("corrupt input at byte %d", -osize);
 
             PyErr_Format(PyExc_ValueError, "corrupt input at byte %d", -osize);
             Py_CLEAR(result);

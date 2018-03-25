@@ -37,18 +37,25 @@ from zfs.zio import RaidzDevice             # or MirrorDevice
 
 from os import path
 
-BLK_PROXY_ADDR = ("localhost", 24892)       # network block server
-# BLK_PROXY_ADDR = ("files:", "disks.tab")  # local device nodes
+setupid = 1;
+if setupid == 0:
+    BLK_PROXY_ADDR = ("localhost", 24892)       # network block server
+    BLK_INITIAL_DISK = "/dev/disk/by-id/ata-WDC_WD30EFRX-68EUZN0_WD-WCC4N1KPRKPX-part1"      # device to read the label from
+    #BLK_INITIAL_DISK = "/dev/disk/by-id/ata-WDC_WD30EZRX-00D8PB0_WD-WMC4N1642572-part1"      # device to read the label from
+    #BLK_INITIAL_DISK = "/dev/disk/by-id/ata-WDC_WD30EFRX-68EUZN0_WD-WCC4N7ZXC1E0-part1"      # device to read the label from
+    TXG = 108199        # 108324                           # select specific transaction or -1 for the active one # 108324    12 Mar 2018 17:33:06    1520872386
+    DS_TO_ARCHIVE = [42];
+    TXG_ARRAY = [108193, 108199, 108320,  108322, 108195, 108324, 108325, 108326, 108328, 108201, 108330, 108331, 108332, 108173, 108334, 108207]
+else:
+    BLK_PROXY_ADDR = ("files:", "datatab.txt")  # local device nodes
+    BLK_INITIAL_DISK = "/dev/loop0"
+    TXG = 2937
+    DS_TO_ARCHIVE = [54];
+    TXG_ARRAY = [2937]
 
-BLK_INITIAL_DISK = "/dev/disk/by-id/ata-WDC_WD30EFRX-68EUZN0_WD-WCC4N1KPRKPX-part1"      # device to read the label from
-#BLK_INITIAL_DISK = "/dev/disk/by-id/ata-WDC_WD30EZRX-00D8PB0_WD-WMC4N1642572-part1"      # device to read the label from
-#BLK_INITIAL_DISK = "/dev/disk/by-id/ata-WDC_WD30EFRX-68EUZN0_WD-WCC4N7ZXC1E0-part1"      # device to read the label from
-TXG = 108199        # 108324                           # select specific transaction or -1 for the active one
-# 108324    12 Mar 2018 17:33:06    1520872386
 
 TEMP_DIR = "/tmp"
 OUTPUT_DIR = "rescued"
-DS_TO_ARCHIVE = []
 DS_OBJECTS = []                             # objects to export
 DS_OBJECTS_SKIP = []                        # objects to skip
 DS_SKIP_TRAVERSE = []                       # datasets to skip while exporting file lists
@@ -91,7 +98,7 @@ for disk in uberblocks.keys():
 
 # 108193 working
 
-for TXG in [108193, 108199, 108320,  108322, 108195, 108324, 108325, 108326, 108328, 108201, 108330, 108331, 108332, 108173, 108334, 108207]:
+for TXG in TXG_ARRAY:
 
     try:
         ub = id_l.find_ub_txg(TXG)
@@ -140,7 +147,6 @@ for dsid in datasets:
     if dsid not in DS_SKIP_TRAVERSE:
         ddss.export_file_list(path.join(OUTPUT_DIR, "ds_{}_filelist.csv".format(dsid)))
 
-DS_TO_ARCHIVE = [42];
 for dsid in DS_TO_ARCHIVE:
     ddss = Dataset(pool_dev, datasets[dsid], dva=1)
     ddss.analyse()
