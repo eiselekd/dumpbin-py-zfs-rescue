@@ -1,0 +1,48 @@
+Last-Update: 2015-08-26
+Forwarded: not-needed
+Origin: upstream, https://github.com/steeve/python-lz4/commit/36db8c459379a8287224e95261d0896e67cbaf70
+From: Yue Du <ifduyue@gmail.com>
+Author: Dmitry Smirnov <onlyjob@member.fsf.org>
+Description: Export VERSION and LZ4_VERSION. Close #19
+
+--- a/setup.py
++++ b/setup.py
+@@ -3,12 +3,13 @@
+ 
+ from setuptools import setup, find_packages, Extension
+ 
+ VERSION = (0, 7, 0)
++VERSION_STR = ".".join([str(x) for x in VERSION])
+ 
+ setup(
+     name='lz4',
+-    version=".".join([str(x) for x in VERSION]),
++    version=VERSION_STR,
+     description="LZ4 Bindings for Python",
+     long_description=open('README.rst', 'r').read(),
+     author='Steeve Morin',
+     author_email='steeve.morin@gmail.com',
+@@ -25,8 +26,9 @@
+             "-O3",
+             "-Wall",
+             "-W",
+             "-Wundef",
++            "-DVERSION=\"%s\"" % VERSION_STR,
+             "-DLZ4_VERSION=\"r119\"",
+         ])
+     ],
+     setup_requires=["nose>=1.0"],
+--- a/src/python-lz4.c
++++ b/src/python-lz4.c
+@@ -201,8 +201,11 @@
+         Py_DECREF(module);
+         INITERROR;
+     }
+ 
++    PyModule_AddStringConstant(module, "VERSION", VERSION);
++    PyModule_AddStringConstant(module, "LZ4_VERSION", LZ4_VERSION);
++
+ #if PY_MAJOR_VERSION >= 3
+     return module;
+ #endif
+ }

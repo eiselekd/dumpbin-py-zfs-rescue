@@ -1,0 +1,20 @@
+#!/usr/bin/make -f
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+export PYBUILD_NAME=lz4
+
+%:
+	dh $@ --parallel --with python2,python3 --buildsystem=pybuild
+
+DPATH := $(abspath $(dir $(MAKEFILE_LIST)))
+VER ?= $(shell dpkg-parsechangelog -l$(DPATH)/changelog -SVersion | perl -ne 'print $$1 if m{([\d\.]+)}')
+.PHONY: get-orig-source
+## http://wiki.debian.org/onlyjob/get-orig-source
+get-orig-source:  $(info I: $(VER))
+	@echo "# Downloading..."
+	uscan --noconf --verbose --rename \
+              --destdir=$(CURDIR) --check-dirname-level=0 \
+              --force-download --download-version $(VER) $(DPATH) \
+              --repack --compression xz
