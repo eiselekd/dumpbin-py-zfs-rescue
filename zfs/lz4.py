@@ -1,4 +1,4 @@
-import lz4
+import lz4zfs
 
 def lz4_decompress(src, dlen, dst=None):
     """
@@ -11,7 +11,7 @@ def lz4_decompress(src, dlen, dst=None):
         dst = bytearray()
     print(str(src))
     b = bytes(src)
-    d=lz4.decompress(b)
+    d=lz4zfs.decompress(b)
     l=len(d)
     if (dlen != l):
         print("[-] decompress size differ from %d, got %d" %(dlen,l))

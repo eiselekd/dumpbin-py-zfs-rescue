@@ -631,10 +631,7 @@ static PyObject *py_lz4_uncompress(PyObject *self, PyObject *args) {
 }
 
 static PyMethodDef Lz4Methods[] = {
-    {"LZ4_uncompress",  py_lz4_uncompress, METH_VARARGS, UNCOMPRESS_DOCSTRING},
-    {"uncompress",  py_lz4_uncompress, METH_VARARGS, UNCOMPRESS_DOCSTRING},
     {"decompress",  py_lz4_uncompress, METH_VARARGS, UNCOMPRESS_DOCSTRING},
-    {"loads",  py_lz4_uncompress, METH_VARARGS, UNCOMPRESS_DOCSTRING},
     {NULL, NULL, 0, NULL}
 };
 
@@ -664,7 +661,7 @@ static int myextension_clear(PyObject *m) {
 
 static struct PyModuleDef moduledef = {
         PyModuleDef_HEAD_INIT,
-        "lz4",
+        "lz4zfs",
         NULL,
         sizeof(struct module_state),
         Lz4Methods,
