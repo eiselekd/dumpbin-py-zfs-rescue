@@ -25,4 +25,5 @@ def lz4_decompress(src, dlen, dst=None):
             dst[0:dlen] = d;
         else:
             dst[0:l] = d;
+    print(str(dst))
     return dst

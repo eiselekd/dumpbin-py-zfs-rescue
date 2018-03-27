@@ -34,6 +34,8 @@ from zfs.label import Label
 from zfs.dataset import Dataset
 from zfs.objectset import ObjectSet
 from zfs.zio import RaidzDevice             # or MirrorDevice
+from zfs.blocktree import BlockTree;
+from zfs.objectset import ObjectSet;
 
 from os import path
 
@@ -49,11 +51,11 @@ if setupid == 0:
 else:
     BLK_PROXY_ADDR = ("files:", "datatab.txt")  # local device nodes
     BLK_INITIAL_DISK = "/dev/loop0"
-    TXG = 2937
+    TXG = 2935
     DS_TO_ARCHIVE = [54];
-    TXG_ARRAY = [2937]
+    TXG_ARRAY = [2935]
 
-
+isindataset = 0;
 TEMP_DIR = "/tmp"
 OUTPUT_DIR = "rescued"
 DS_OBJECTS = []                             # objects to export
@@ -147,7 +149,10 @@ for dsid in datasets:
     if dsid not in DS_SKIP_TRAVERSE:
         ddss.export_file_list(path.join(OUTPUT_DIR, "ds_{}_filelist.csv".format(dsid)))
 
+BlockTree.isindataset = 1;
+ObjectSet.isindataset = 1;
 for dsid in DS_TO_ARCHIVE:
+    print("[+] ------------- archive %d ------------------" %(dsid))
     ddss = Dataset(pool_dev, datasets[dsid], dva=1)
     ddss.analyse()
     # ddss.prefetch_object_set()

@@ -158,6 +158,7 @@ class BlockPtrArray:
         for i in range(len(data) // 128):
             bp = BlockPtr(data=data[i*128:(i+1)*128])
             self._bptrs.append(bp)
+            print(str(bp))
 
     def __len__(self):
         return len(self._bptrs)
