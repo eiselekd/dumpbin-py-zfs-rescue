@@ -35,9 +35,8 @@ B{Block server}
 Provides remote clients with access to the local disks.
 """
 
-import os
 from socketserver import TCPServer, BaseRequestHandler
-import struct
+import struct, socket
 
 SERVER_ADDRESS = "localhost"
 SERVER_PORT = 24892
@@ -53,7 +52,7 @@ class BlockTCPHandler(BaseRequestHandler):
     def handle(self):
         cmd = self.request.recv(1024)
         if len(cmd) < 18:
-            print("[-] Block Server: invalid request")
+            print("[-] Block Server: invalid request %s" %(str(cmd)) )
             return
         op = cmd[0]
         if op == 1:
@@ -84,12 +83,16 @@ class BlockTCPHandler(BaseRequestHandler):
         if path in trans_table.keys():
             path = trans_table[path]
         if verbose:
-            print("[+] Block server: %s -- 0x%x/0x%x" %(path, offset, count))
-        fd = os.open(path, os.O_RDONLY)
-        #f.seek(offset)
-        #data = f.read(count)
-        data = os.pread(fd, count, offset)
-        os.close(fd)
+            print("[+] Block server: {} -- {}/{}".format(path, offset, count))
+        try:
+            f = open(path, 'rb')
+            f.seek(offset)
+            data = f.read(count)
+            f.close()
+        except:
+            data = bytearray()
+            for i in range(count):
+                data.append(0);
         if verbose:
             print("[+]  Read {} bytes".format(len(data)))
         return data
@@ -111,4 +114,6 @@ def populate_trans_table():
 if __name__ == "__main__":
     populate_trans_table()
     server = TCPServer((SERVER_ADDRESS, SERVER_PORT), BlockTCPHandler)
+    server.socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+    server.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server.serve_forever()

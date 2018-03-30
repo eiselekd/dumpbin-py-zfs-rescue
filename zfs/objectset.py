@@ -33,8 +33,6 @@ from zfs.blocktree import BlockTree
 
 class ObjectSet:
 
-    isindataset = 0;
-
     def __init__(self, vdev, os_bptr, dva=0):
         self._vdev = vdev
         # Load the object set dnode
@@ -100,9 +98,6 @@ class ObjectSet:
                 for dva in range(3):
                     block_data = self._vdev.read_block(bp, dva=dva)
                     if block_data:
-                        for i in range(int(len(block_data)/512)):
-                            dnode0 = DNode(data=block_data[i*512:(i+1)*512])
-                            print("%d:%s" %(i,str(dnode0)))
                         break
             self._block_cache[blockid] = block_data
         if block_data is None:

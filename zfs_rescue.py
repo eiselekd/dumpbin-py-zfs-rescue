@@ -34,30 +34,23 @@ from zfs.label import Label
 from zfs.dataset import Dataset
 from zfs.objectset import ObjectSet
 from zfs.zio import RaidzDevice             # or MirrorDevice
-from zfs.blocktree import BlockTree;
-from zfs.objectset import ObjectSet;
+from zfs.zap import zap_factory
 
 from os import path
 
-setupid = 1;
-if setupid == 0:
-    BLK_PROXY_ADDR = ("localhost", 24892)       # network block server
-    BLK_INITIAL_DISK = "/dev/disk/by-id/ata-WDC_WD30EFRX-68EUZN0_WD-WCC4N1KPRKPX-part1"      # device to read the label from
-    #BLK_INITIAL_DISK = "/dev/disk/by-id/ata-WDC_WD30EZRX-00D8PB0_WD-WMC4N1642572-part1"      # device to read the label from
-    #BLK_INITIAL_DISK = "/dev/disk/by-id/ata-WDC_WD30EFRX-68EUZN0_WD-WCC4N7ZXC1E0-part1"      # device to read the label from
-    TXG = 108199        # 108324                           # select specific transaction or -1 for the active one # 108324    12 Mar 2018 17:33:06    1520872386
-    DS_TO_ARCHIVE = [42];
-    TXG_ARRAY = [108193, 108199, 108320,  108322, 108195, 108324, 108325, 108326, 108328, 108201, 108330, 108331, 108332, 108173, 108334, 108207]
-else:
-    BLK_PROXY_ADDR = ("files:", "datatab.txt")  # local device nodes
-    BLK_INITIAL_DISK = "/dev/loop0"
-    TXG = 2935
-    DS_TO_ARCHIVE = [54];
-    TXG_ARRAY = [2935]
+#BLK_PROXY_ADDR = ("localhost", 24892)       # network block server
+BLK_PROXY_ADDR = ("files:", "disks.tab")  # local device nodes
 
-isindataset = 0;
+#BLK_INITIAL_DISK = "/dev/dsk/c3t0d0s7"      # device to read the label from
+BLK_INITIAL_DISK = "/dev/loop0"      # device to read the label from
+#BLK_INITIAL_DISK = "/dev/disk/by-id/ata-WDC_WD30EFRX-68EUZN0_WD-WCC4N1KPRKPX-part1"      # device to read the label from
+TXG = -1                                    # select specific transaction or -1 for the active one
+#TXG = 108199        # 108324                           # select specific transaction or -1 for the active one
+
 TEMP_DIR = "/tmp"
 OUTPUT_DIR = "rescued"
+DS_TO_ARCHIVE = [259]
+#DS_TO_ARCHIVE = [42]
 DS_OBJECTS = []                             # objects to export
 DS_OBJECTS_SKIP = []                        # objects to skip
 DS_SKIP_TRAVERSE = []                       # datasets to skip while exporting file lists
@@ -73,65 +66,75 @@ id_l.read(0)
 id_l.debug()
 all_disks = id_l.get_vdev_disks()
 
-pool_dev = RaidzDevice(all_disks, 1, BLK_PROXY_ADDR, bad=[3], repair=True, dump_dir=OUTPUT_DIR)
+pool_dev = RaidzDevice(all_disks, 1, BLK_PROXY_ADDR, bad=[3], ashift=id_l._ashift, repair=True, dump_dir=OUTPUT_DIR)
 # pool_dev = MirrorDevice(all_disks, BLK_PROXY_ADDR, dump_dir=OUTPUT_DIR)
 
 print("[+] Loading uberblocks from child vdevs")
 uberblocks = {}
-for disk in all_disks[1:]:
+for disk in all_disks:
     bp = BlockProxy(BLK_PROXY_ADDR)
     l0 = Label(bp, disk)
     l0.read(0)
     l1 = Label(bp, disk)
     l1.read(1)
     ub = l0.find_active_ub()
-    print("L0:")
-    l0.debug(show_uberblocks=True);
-    print("L1:")
-    l1.debug(show_uberblocks=True);
     ub_found = " (active UB txg {})".format(ub.txg) if ub is not None else ""
     print("[+]  Disk {}: L0 txg {}{}, L1 txg {}".format(disk, l0.get_txg(), ub_found, l1.get_txg()))
     uberblocks[disk] = ub
 
-print("\n[+] Active uberblocks:")
-for disk in uberblocks.keys():
-     print(disk)
+# print("\n[+] Active uberblocks:")
+# for disk in uberblocks.keys():
+#     print(disk)
 #     uberblocks[disk].debug()
 
-# 108193 working
+ub = id_l.find_ub_txg(TXG)
+if ub:
+    root_blkptr = ub.rootbp
+    print("[+] Selected uberblock with txg", TXG)
+else:
+    root_blkptr = uberblocks[BLK_INITIAL_DISK].rootbp
+    print("[+] Selected active uberblock from initial disk")
 
-for TXG in TXG_ARRAY:
+print("[+] Reading MOS: {}".format(root_blkptr))
 
-    try:
-        ub = id_l.find_ub_txg(TXG)
-        if ub:
-            root_blkptr = ub.rootbp
-            print("[+] Selected uberblock with txg", TXG)
-        else:
-            root_blkptr = uberblocks[BLK_INITIAL_DISK].rootbp
-            print("[+] Selected active uberblock from initial disk")
+datasets = {}
+
+# Try all copies of the MOS
+for dva in range(3):
+    mos = ObjectSet(pool_dev, root_blkptr, dva=dva)
+    for n in range(len(mos)):
+        if n == 259:
+            print ("259")
+        d = mos[n]
+        print("[+]  dnode[{:>3}]={}".format(n, d))
+        if d and d.type == 16:
+            datasets[n] = d
             
-        print("[+] Reading MOS: {}".format(root_blkptr))
+            if d.bonus.ds_num_children > 0:
+                ds_dir_obj = d.bonus.ds_dir_obj
+                dir_obj = mos[ds_dir_obj]
+                child_dir_zap = mos[dir_obj.bonus.dd_child_dir_zapobj]
+                dir_obj_zap = zap_factory(pool_dev, child_dir_zap)
+                print (str(dir_obj_zap))
 
-        datasets = {}
+            
+
+print("[+] {} root dataset")
+rds_z = mos[1]
+rds_zap = zap_factory(pool_dev, rds_z)
+rds_id = rds_zap['root_dataset']
+rdir = mos[rds_id]
+cdzap_id = rdir.bonus.dd_child_dir_zapobj
+cdzap_z = mos[cdzap_id]
+cdzap_zap = zap_factory(pool_dev, cdzap_z)
+for k,v in cdzap_zap._entries.items():
+    if not k[0:1] == '$': 
+        child = mos[v]
+        cds = child.bonus.dd_head_dataset_obj
+        print("child %s with dataset %d" %(k,cds))
+        # mos[cds] points to a zap with "bonus  DSL dataset "
+        datasets[cds] = mos[cds]
         
-        # Try all copies of the MOS
-        for dva in range(3):
-            try:
-                mos = ObjectSet(pool_dev, root_blkptr, dva=dva)
-            except Exception as e:
-                print("Failed %s" %(str(e)))
-                continue
-            for n in range(len(mos)):
-                d = mos[n]
-                print("[+]  dnode[{:>3}]={}".format(n, d))
-                if d and d.type == 16:
-                    datasets[n] = d
-    except Exception as e:
-        print("Failed %s" %(str(e)))
-        pass
-
-                
 
 print("[+] {} datasets found".format(len(datasets)))
 
@@ -141,7 +144,11 @@ for dsid in datasets:
     print("[+]  dnode {}".format(ds_dnode))
     print("[+]  creation timestamp {}".format(ds_dnode.bonus.ds_creation_time))
     print("[+]  creation txg {}".format(ds_dnode.bonus.ds_creation_txg))
-    print("[+]  {} uncompressed bytes".format(ds_dnode.bonus.ds_uncompressed_bytes))
+    print("[+]  {} uncompressed bytes, {} compressed bytes".format(ds_dnode.bonus.ds_uncompressed_bytes, ds_dnode.bonus.ds_compressed_bytes))
+    print(" Hirarchical info:") 
+    print("[ ] ds_num_children: %d" %(ds_dnode.bonus.ds_num_children))
+        
+        
     if FAST_ANALYSIS:
         continue
     ddss = Dataset(pool_dev, ds_dnode)
@@ -149,13 +156,11 @@ for dsid in datasets:
     if dsid not in DS_SKIP_TRAVERSE:
         ddss.export_file_list(path.join(OUTPUT_DIR, "ds_{}_filelist.csv".format(dsid)))
 
-BlockTree.isindataset = 1;
-ObjectSet.isindataset = 1;
 for dsid in DS_TO_ARCHIVE:
-    print("[+] ------------- archive %d ------------------" %(dsid))
     ddss = Dataset(pool_dev, datasets[dsid], dva=1)
     ddss.analyse()
     # ddss.prefetch_object_set()
+    continue
     if len(DS_OBJECTS) > 0:
         for dnid, objname in DS_OBJECTS:
             ddss.archive(path.join(OUTPUT_DIR, "ds_{}_{}.tar".format(dsid, objname)),

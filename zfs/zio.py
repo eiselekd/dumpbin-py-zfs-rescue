@@ -29,9 +29,10 @@
 
 from block_proxy.proxy import BlockProxy
 from zfs.lzjb import lzjb_decompress
-from zfs.lz4 import lz4_decompress
+from zfs.lz4zfs import lz4zfs_decompress
 
 from os import path
+import struct;
 
 LOG_QUIET = 0
 LOG_VERBOSE = 1
@@ -42,92 +43,25 @@ def roundup(x, y):
     return ((x + y - 1) // y) * y
 
 
-def map_alloc(io_offset, io_size, unit_shift, dcols, nparity):
-
-    # The starting RAIDZ (parent) vdev sector of the block.
-    b = io_offset >> unit_shift
-    # The zio's size in units of the vdev's minimum sector size.
-    s = io_size >> unit_shift
-    # The first column for this stripe.
-    f = b % dcols
-    # The starting byte offset on each child vdev.
-    o = (b // dcols) << unit_shift
-
-    print("[+] : 0x%x:0x%x ashift:%d,%d,%d" %(io_offset, io_size, unit_shift, dcols, nparity))
-
-    # "Quotient": The number of data sectors for this stripe on all but
-    # the "big column" child vdevs that also contain "remainder" data.
-    q = s // (dcols - nparity)
-
-    # "Remainder": The number of partial stripe data sectors in this I/O.
-    # This will add a sector to some, but not all, child vdevs.
-    r = s - q * (dcols - nparity)
-
-    # The number of "big columns" - those which contain remainder data.
-    bc = (r + nparity) if r else 0
-
-    # The total number of data and parity sectors associated with
-    # this I/O.
-    tot = s + nparity * (q + (1 if r else 0))
-
-    # acols: The columns that will be accessed.
-    # scols: The columns that will be accessed or skipped.
-    if q == 0:
-        # Our I/O request doesn't span all child vdevs.
-        acols = bc
-        scols = min(dcols, roundup(bc, nparity + 1))
-    else:
-        acols = dcols
-        scols = dcols
-
-    rm_skipstart = bc
-    rm_firstdatacol = nparity
-    rm_cols = []
-
-    for c in range(scols):
-        col = f + c
-        coff = o
-        rm_col = {"rc_size" : 0}
-        if col >= dcols:
-            col -= dcols
-            coff += (1 << unit_shift)
-        rm_col = {"rc_devidx": col, "rc_offset": coff}
-
-        if c >= acols:
-            rm_col["rc_size"] = 0
-        elif c < bc:
-            rm_col["rc_size"] = (q + 1) << unit_shift
-        else:
-            rm_col["rc_size"] = q << unit_shift
-        if rm_col["rc_size"] > 0:
-            rm_cols.append(rm_col)
-
-    if (rm_firstdatacol == 1) and (io_offset & (1 << 20)):
-        devidx = rm_cols[0]["rc_devidx"]
-        o = rm_cols[0]["rc_offset"]
-        rm_cols[0]["rc_devidx"] = rm_cols[1]["rc_devidx"]
-        rm_cols[0]["rc_offset"] = rm_cols[1]["rc_offset"]
-        rm_cols[1]["rc_devidx"] = devidx
-        rm_cols[1]["rc_offset"] = o
-        if rm_skipstart == 0:
-            rm_skipstart = 1
-
-    return rm_cols, rm_firstdatacol, rm_skipstart
-
-
 class GenericDevice:
-
+    COMP_TYPE_ON = 1
+    COMP_TYPE_LZJB = 3
+    COMP_TYPE_LZ4 = 15
+    CompType = {
+        COMP_TYPE_ON:   "LZJB",
+        COMP_TYPE_LZJB: "LZJB",
+        COMP_TYPE_LZ4:  "LZ4"
+    }
     def __init__(self, child_devs, block_provider_addr, dump_dir="/tmp"):
         self._devs = child_devs
         self._bp = BlockProxy(block_provider_addr)
         self._dump_dir = dump_dir
-        self._verbose = LOG_NOISY #LOG_QUIET
+        self._verbose = LOG_QUIET
 
     def set_verbosity_level(self, level):
         self._verbose = level
 
     def read_block(self, bptr, dva=0, debug_dump=False, debug_prefix="block"):
-        debug_dump=True
         if bptr.get_dva(dva).gang:
             # TODO: Implement gang blocks
             raise NotImplementedError("Gang blocks are still not supported")
@@ -138,31 +72,23 @@ class GenericDevice:
             return None
         lsize = bptr.lsize
         if self._verbose >= LOG_VERBOSE:
-            print("[+] Reading block at {}:{}".format(hex(offset)[2:], hex(psize)[2:]))
-        data = self._read_physical(offset, asize, debug_dump, debug_prefix) #psize
+            print("[+] Reading block at {}:{}".format(hex(offset)[2:], hex(asize)[2:]))
+        if (bptr._embeded):
+            lsize = bptr._embeded_lsize
+            data = bptr._embeded_data
+        else:
+            data = self._read_physical(offset, asize, debug_dump, debug_prefix)
         if bptr.compressed:
-            if bptr.comp_alg in [1, 3, 15]:
-                if bptr.comp_alg == 15:
-                    if self._verbose >= LOG_VERBOSE:
-                        print("[+]  Decompressing with LZ4")
-                    try:
-                        if debug_dump:
-                            f = open(path.join(self._dump_dir, "{}.{}.lz4".format(debug_prefix,lsize)), "wb")
-                            f.write(data)
-                            f.close()
-                        #if (len(data)>psize):
-                        #    data=data[0:psize];
-                        data = lz4_decompress(data, lsize)
-                    except Exception as e:
-                        print("[-] lz4 decompress error %s" %(str(e)))
-                        data = None
-                else:
-                    if self._verbose >= LOG_VERBOSE:
-                        print("[+]  Decompressing with LZJB")
-                    try:
+            if bptr.comp_alg in GenericDevice.CompType:
+                if self._verbose >= LOG_VERBOSE:
+                    print("[+]  Decompressing with %s", GenericDevice.CompType[bptr.comp_alg])
+                try:
+                    if (bptr.comp_alg == GenericDevice.COMP_TYPE_LZ4):
+                        data = lz4zfs_decompress(data, lsize)
+                    else:
                         data = lzjb_decompress(data, lsize)
-                    except:
-                        data = None
+                except:
+                    data = None
                 if data is None:
                     if self._verbose >= LOG_VERBOSE:
                         print("[-]   Decompression failed")
@@ -205,8 +131,9 @@ class MirrorDevice(GenericDevice):
 
 class RaidzDevice(GenericDevice):
 
-    def __init__(self, child_vdevs, nparity, proxy_addr, bad=None, repair=False, dump_dir="/tmp"):
+    def __init__(self, child_vdevs, nparity, proxy_addr, ashift=9, bad=None, repair=False, dump_dir="/tmp"):
         super().__init__(child_vdevs, proxy_addr, dump_dir=dump_dir)
+        self._ashift = ashift
         self._nparity = nparity
         self._bad = bad
         self._repair = repair
@@ -216,7 +143,12 @@ class RaidzDevice(GenericDevice):
             print("[-] Raidz created with more bad disks than parity allows!")
 
     def _read_physical(self, offset, psize, debug_dump, debug_prefix):
-        (cols, firstdatacol, skipstart) = self._map_alloc(offset, psize, 12) # 9
+        
+        if offset > 8*1024*1024*1024*1024: # 3tb
+            print ("[-] offset limit reached %d" %(offset))
+            return None
+        
+        (cols, firstdatacol, skipstart) = self._map_alloc(offset, psize, self._ashift)
         col_data = []
         blockv = []
         for c in range(len(cols)):
@@ -270,10 +202,6 @@ class RaidzDevice(GenericDevice):
 
     def _map_alloc(self, io_offset, io_size, unit_shift):
         dcols = len(self._devs)
-
-        return map_alloc(io_offset, io_size, 12, dcols, self._nparity) #unit_shift
-
-
         # The starting RAIDZ (parent) vdev sector of the block.
         b = io_offset >> unit_shift
         # The zio's size in units of the vdev's minimum sector size.
@@ -339,3 +267,16 @@ class RaidzDevice(GenericDevice):
                 rm_skipstart = 1
 
         return rm_cols, rm_firstdatacol, rm_skipstart
+
+def dumppacket(data):
+    l = roundup(len(data),32)//32
+    for i in range(l):
+        e = min(len(data),(i+1)*32)
+        ln = data[i*32:e]
+        f = 32-len(ln);
+        def isprint(c):
+            return (c >= 0x21 and c <= 0x7e)
+        print("%04x: %s" %(i*32,"".join(
+            [ ("%02x " %(j)) for j in ln ] + (["   "]*f) +
+            [ ("%c" %(c)) if isprint(c) else "." for c in ln ] + ([" "]*f)
+        )))

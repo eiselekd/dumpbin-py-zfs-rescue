@@ -30,6 +30,7 @@
 from zfs.objectset import ObjectSet
 from zfs.zap import zap_factory, TYPECODES, safe_decode_string
 from zfs.blocktree import BlockTree
+from zfs.sa import SystemAttr
 from zfs.fileobj import FileObj
 
 import csv
@@ -72,6 +73,13 @@ class Dataset(ObjectSet):
             self._rootdir_id = z["ROOT"]
             if self._rootdir_id is None:
                 z.debug()
+            
+            # try load System Attribute Layout and registry:
+            try:
+                self._sa = SystemAttr(self._vdev, self, z["SA_ATTRS"]);
+            except Exception as e:
+                print("[-] Unable to parse System Attribute tables: %s" %(str(e)))   
+
         if self._rootdir_id is None:
             print("[-]  Root directory ID is not in master node")
             return
@@ -82,13 +90,18 @@ class Dataset(ObjectSet):
         if rootdir_dnode.type != 20:
             print("[-]  Root directory object is of wrong type")
         num_dnodes = min(self.dnodes_per_block, self.max_obj_id+1)
+        print("----------------------------------")
         print("[+]  First block of the object set:")
-        for n in range(num_dnodes):
-            d = self[n]
+        for n in range(1,32): #range(self.max_obj_id):
+            try:
+                d = self[n]
+            except:
+                d=None
+                pass
             if d is None:
                 # Bad - very likely the block tree is broken
                 print("[-]  Object set (partially) unreachable")
-                break
+                #break
             print("[+]  dnode[{:>2}]={}".format(n, d))
 
     def prefetch_object_set(self):

@@ -31,8 +31,7 @@ from zfs.blockptr import BlockPtrArray
 
 
 class BlockTree:
-    isindataset = 0;
-    
+
     def __init__(self, levels, vdev, root_bptr):
         self._levels = levels
         self._vdev = vdev
@@ -42,9 +41,6 @@ class BlockTree:
         else:
             self._root = self._load_from_bptr(root_bptr)
             self._blocks_per_level = len(self._root)
-            #if BlockTree.isindataset: 
-            #    self._blocks_per_level = self._blocks_per_level*3;
-            
             print("[+]  {} blocks per level".format(self._blocks_per_level))
             self._cache = {}
 
