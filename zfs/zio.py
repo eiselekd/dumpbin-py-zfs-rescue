@@ -27,6 +27,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
+from zfs.blockptr import fletcher4
 from block_proxy.proxy import BlockProxy
 from zfs.lzjb import lzjb_decompress
 from zfs.lz4zfs import lz4zfs_decompress
@@ -37,7 +38,7 @@ import struct;
 LOG_QUIET = 0
 LOG_VERBOSE = 1
 LOG_NOISY = 5
-
+DO_CHKSUM = 0
 
 def roundup(x, y):
     return ((x + y - 1) // y) * y
@@ -78,6 +79,13 @@ class GenericDevice:
             data = bptr._embeded_data
         else:
             data = self._read_physical(offset, asize, debug_dump, debug_prefix)
+            
+            if bptr._cksum == 7 and DO_CHKSUM:
+                a,b,c,d = fletcher4(data[0:psize])
+                if not (a == bptr._checksum[0] and b == bptr._checksum[1] and c == bptr._checksum[2] and d == bptr._checksum[3]):
+                    print("expect:%016x:%016x:%016x:%016x" %(bptr._checksum[0],bptr._checksum[1],bptr._checksum[2],bptr._checksum[3]))
+                    print("got   :%016x:%016x:%016x:%016x" %(a,b,c,d))
+
         if bptr.compressed:
             if bptr.comp_alg in GenericDevice.CompType:
                 if self._verbose >= LOG_VERBOSE:
@@ -104,6 +112,7 @@ class GenericDevice:
             f = open(path.join(self._dump_dir, "{}.raw".format(debug_prefix)), "wb")
             f.write(data)
             f.close()
+            
         return data
 
     def _read_physical(self, offset, psize, debug_dump, debug_prefix):

@@ -29,7 +29,7 @@
 
 import struct
 
-from zfs.blockptr import BlockPtr
+from zfs.blockptr import BlockPtr, fletcher4
 from zfs.obj_desc import DMU_TYPE_DESC
 
 BLKPTR_OFFSET = 64
@@ -257,7 +257,7 @@ class DNode:
             self._bonus = BonusDirectory(bonus_data)
         elif self._bonuslen and self._bonustype == 16:
             self._bonus = BonusDataset(bonus_data)
-            print("[+] DSL dataset: %s (DSL directory: %d)" %(str(self._bonus), self._bonus.ds_dir_obj))            
+            print("[+] DSL dataset: %s (DSL directory: %d)" %(str(self._bonus), self._bonus.ds_dir_obj))
         elif self._bonuslen and self._bonustype == 17:
             self._bonus = BonusZnode(bonus_data)
         elif self._bonuslen and self._bonustype == 0x2c:

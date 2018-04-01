@@ -11,3 +11,6 @@
 #/dev/disk/by-id/ata-WDC_WD30EFRX-68EUZN0_WD-WCC4N7ZXC1E0-part1	/dev/sdb1
 #/dev/disk/by-id/ata-WDC_WD30EZRX-00D8PB0_WD-WMC4N1642572-part1	/dev/sdc1
 #/dev/disk/by-id/ata-WDC_WD30EFRX-68EUZN0_WD-WCC4N1KPRKPX-part1	/dev/sdd1
+/dev/loop0	/home/eiselekd/git/py-zfs-rescue/disk0.bin
+/dev/loop1	/home/eiselekd/git/py-zfs-rescue/disk1.bin
+/dev/loop2	/home/eiselekd/git/py-zfs-rescue/disk2.bin

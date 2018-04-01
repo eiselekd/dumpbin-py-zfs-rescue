@@ -38,8 +38,8 @@ from zfs.zap import zap_factory
 
 from os import path
 
-#BLK_PROXY_ADDR = ("localhost", 24892)       # network block server
-BLK_PROXY_ADDR = ("files:", "disks.tab")  # local device nodes
+BLK_PROXY_ADDR = ("localhost", 24892)       # network block server
+#BLK_PROXY_ADDR = ("files:", "disks.tab")  # local device nodes
 
 #BLK_INITIAL_DISK = "/dev/dsk/c3t0d0s7"      # device to read the label from
 BLK_INITIAL_DISK = "/dev/loop0"      # device to read the label from
@@ -160,7 +160,7 @@ for dsid in DS_TO_ARCHIVE:
     ddss = Dataset(pool_dev, datasets[dsid], dva=1)
     ddss.analyse()
     # ddss.prefetch_object_set()
-    continue
+    # continue
     if len(DS_OBJECTS) > 0:
         for dnid, objname in DS_OBJECTS:
             ddss.archive(path.join(OUTPUT_DIR, "ds_{}_{}.tar".format(dsid, objname)),
