@@ -38,8 +38,8 @@ from zfs.zap import zap_factory
 
 from os import path
 
-BLK_PROXY_ADDR = ("localhost", 24892)       # network block server
-#BLK_PROXY_ADDR = ("files:", "disks.tab")  # local device nodes
+#BLK_PROXY_ADDR = ("localhost", 24892)       # network block server
+BLK_PROXY_ADDR = ("files:", "disks.tab")  # local device nodes
 
 #BLK_INITIAL_DISK = "/dev/dsk/c3t0d0s7"      # device to read the label from
 BLK_INITIAL_DISK = "/dev/loop0"      # device to read the label from

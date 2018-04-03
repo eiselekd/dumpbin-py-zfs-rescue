@@ -198,7 +198,7 @@ DNODE_FLAG_USED_BYTES=(1 << 0)
 
 class DNode:
 
-    def __init__(self, data=None):
+    def __init__(self, data=None, block_data=None, dnid=None):
         self._data = None
         self._type = None  # uint8_t 1
         self._indblkshift = None  # uint8_t 1
@@ -218,6 +218,8 @@ class DNode:
         self._blkptr = None  # blkptr_t[N] @64
         self._bonus = None  # uint8_t[BONUSLEN]
         self._datablksize = None
+        self._src_block_data = block_data
+        self._src_dnid = dnid
         if data is not None:
             self.parse(data)
 
@@ -314,10 +316,13 @@ class DNode:
             dmu_type = "unk_{}".format(self._type)
         bptrs = " ".join(["blkptr[{}]={}".format(i, v) for i, v in enumerate(self._blkptr)])
         bonus = " bonus[{}]".format(self._bonuslen) if self._bonuslen else ""
+        src = ""
+        if not (self._src_block_data is None):
+            src = str(self._src_block_data._bp) + (":[%d:%d]" %(self._src_block_data._dva, self._src_dnid))
         if self._bonustype in [12, 16]:
             bonus += "=[{}]".format(self._bonus)
-        return "[{}] {}B {}L/{} {}{}".format(dmu_type, self._maxblkid+1,
-                                             self._nlevels, 1 << self._indblkshift, bptrs, bonus)
+        return "[{}] {}B {}L/{} {}{} : src:{}".format(dmu_type, self._maxblkid+1,
+                                             self._nlevels, 1 << self._indblkshift, bptrs, bonus, src)
 
     @staticmethod
     def from_bptr(vdev, bptr, dvas=(0, 1)):

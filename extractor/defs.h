@@ -1,3 +1,6 @@
+#ifndef _DEFS_H_
+#define _DEFS_H_
+
 #include <stdint.h>
 
 /*
@@ -356,6 +359,93 @@ struct uberblock {
 #define	DNODES_PER_BLOCK_SHIFT	(DNODE_BLOCK_SHIFT - DNODE_SHIFT)
 #define	DNODES_PER_BLOCK	(1ULL << DNODES_PER_BLOCK_SHIFT)
 
+typedef enum dmu_object_type {
+	DMU_OT_NONE,                    /* 0: */
+	/* general: */
+	DMU_OT_OBJECT_DIRECTORY,	/* 1:ZAP */
+	DMU_OT_OBJECT_ARRAY,		/* 2:UINT64 */
+	DMU_OT_PACKED_NVLIST,		/* 3:UINT8 (XDR by nvlist_pack/unpack) */
+	DMU_OT_PACKED_NVLIST_SIZE,	/* 4:UINT64 */
+	DMU_OT_BPOBJ,			/* 5:UINT64 */
+	DMU_OT_BPOBJ_HDR,		/* 6:UINT64 */
+	/* spa: */
+	DMU_OT_SPACE_MAP_HEADER,	/* 7:UINT64 */
+	DMU_OT_SPACE_MAP,		/* 8:UINT64 */
+	/* zil: */
+	DMU_OT_INTENT_LOG,		/* 9:UINT64 */
+	/* dmu: */
+	DMU_OT_DNODE,			/* 10:DNODE */
+	DMU_OT_OBJSET,			/* 11:OBJSET */
+	/* dsl: */
+	DMU_OT_DSL_DIR,			/* 12:UINT64 */
+	DMU_OT_DSL_DIR_CHILD_MAP,	/* 13:ZAP */
+	DMU_OT_DSL_DS_SNAP_MAP,		/* 14:ZAP */
+	DMU_OT_DSL_PROPS,		/* 15:ZAP */
+	DMU_OT_DSL_DATASET,		/* 16:UINT64 */
+	/* zpl: */
+	DMU_OT_ZNODE,			/* 17:ZNODE */
+	DMU_OT_OLDACL,			/* 18:Old ACL */
+	DMU_OT_PLAIN_FILE_CONTENTS,	/* 19:UINT8 */
+	DMU_OT_DIRECTORY_CONTENTS,	/* 20:ZAP */
+	DMU_OT_MASTER_NODE,		/* 21:ZAP */
+	DMU_OT_UNLINKED_SET,		/* 22:ZAP */
+	/* zvol: */
+	DMU_OT_ZVOL,			/* 23:UINT8 */
+	DMU_OT_ZVOL_PROP,		/* 24:ZAP */
+	/* other; for testing only! */
+	DMU_OT_PLAIN_OTHER,		/* 25:UINT8 */
+	DMU_OT_UINT64_OTHER,		/* 26:UINT64 */
+	DMU_OT_ZAP_OTHER,		/* 27:ZAP */
+	/* new object types: */
+	DMU_OT_ERROR_LOG,		/* 28:ZAP */
+	DMU_OT_SPA_HISTORY,		/* 29:UINT8 */
+	DMU_OT_SPA_HISTORY_OFFSETS,	/* 30:spa_his_phys_t */
+	DMU_OT_POOL_PROPS,		/* 31:ZAP */
+	DMU_OT_DSL_PERMS,		/* 32:ZAP */
+	DMU_OT_ACL,			/* 33:ACL */
+	DMU_OT_SYSACL,			/* 34:SYSACL */
+	DMU_OT_FUID,			/* 35:FUID table (Packed NVLIST UINT8) */
+	DMU_OT_FUID_SIZE,		/* 36:FUID table size UINT64 */
+	DMU_OT_NEXT_CLONES,		/* 37:ZAP */
+	DMU_OT_SCAN_QUEUE,		/* 38:ZAP */
+	DMU_OT_USERGROUP_USED,		/* 39:ZAP */
+	DMU_OT_USERGROUP_QUOTA,		/* 40:ZAP */
+	DMU_OT_USERREFS,		/* 41:ZAP */
+	DMU_OT_DDT_ZAP,			/* 42:ZAP */
+	DMU_OT_DDT_STATS,		/* 43:ZAP */
+	DMU_OT_SA,			/* 44:System attr */
+	DMU_OT_SA_MASTER_NODE,		/* 45:ZAP */
+	DMU_OT_SA_ATTR_REGISTRATION,	/* 46:ZAP */
+	DMU_OT_SA_ATTR_LAYOUTS,		/* 47:ZAP */
+	DMU_OT_SCAN_XLATE,		/* 48:ZAP */
+	DMU_OT_DEDUP,			/* 49:fake dedup BP from ddt_bp_create() */
+	DMU_OT_DEADLIST,		/* 50:ZAP */
+	DMU_OT_DEADLIST_HDR,		/* 51:UINT64 */
+	DMU_OT_DSL_CLONES,		/* 52:ZAP */
+	DMU_OT_BPOBJ_SUBOBJ,		/* 53:UINT64 */
+	/*
+	 * Do not allocate new object types here. Doing so makes the on-disk
+	 * format incompatible with any other format that uses the same object
+	 * type number.
+	 *
+	 * When creating an object which does not have one of the above types
+	 * use the DMU_OTN_* type with the correct byteswap and metadata
+	 * values.
+	 *
+	 * The DMU_OTN_* types do not have entries in the dmu_ot table,
+	 * use the DMU_OT_IS_METDATA() and DMU_OT_BYTESWAP() macros instead
+	 * of indexing into dmu_ot directly (this works for both DMU_OT_* types
+	 * and DMU_OTN_* types).
+	 */
+	DMU_OT_NUMTYPES,
+
+	/*
+	 * Names for valid types declared with DMU_OT().
+	 */
+	DMU_OTN_ZAP_DATA = 196,
+
+} dmu_object_type_t;
+
 typedef struct dnode_phys {
 	uint8_t dn_type;		/* dmu_object_type_t */
 	uint8_t dn_indblkshift;		/* ln2(indirect block size) */
@@ -481,3 +571,88 @@ typedef struct dsl_dataset_phys {
 	uint64_t ds_userrefs_obj;	/* DMU_OT_USERREFS */
 	uint64_t ds_pad[5]; /* pad out to 320 bytes for good measure */
 } dsl_dataset_phys_t;
+
+typedef struct zio_eck {
+	uint64_t	zec_magic;	/* for validation, endianness	*/
+	zio_cksum_t	zec_cksum;	/* 256-bit checksum		*/
+} zio_eck_t;
+
+#define	VDEV_PHYS_SIZE		(112 << 10)
+#define	VDEV_PAD_SIZE		(8 << 10)
+#define	VDEV_UBERBLOCK_RING	(128 << 10)
+
+typedef struct vdev_phys {
+	char		vp_nvlist[VDEV_PHYS_SIZE - sizeof (zio_eck_t)];
+	zio_eck_t	vp_zbt;
+} vdev_phys_t;
+
+typedef struct vdev_label {
+	char		vl_pad1[VDEV_PAD_SIZE];			/*  8K */
+	char		vl_pad2[VDEV_PAD_SIZE];			/*  8K */
+	vdev_phys_t	vl_vdev_phys;				/* 112K	*/
+	char		vl_uberblock[VDEV_UBERBLOCK_RING];	/* 128K	*/
+} vdev_label_t;							/* 256K total */
+
+/*
+ * TAKE NOTE:
+ * If zap_phys_t is modified, zap_byteswap() must be modified.
+ */
+typedef struct zap_phys {
+	uint64_t zap_block_type;	/* ZBT_HEADER */
+	uint64_t zap_magic;		/* ZAP_MAGIC */
+
+	struct zap_table_phys {
+		uint64_t zt_blk;	/* starting block number */
+		uint64_t zt_numblks;	/* number of blocks */
+		uint64_t zt_shift;	/* bits to index it */
+		uint64_t zt_nextblk;	/* next (larger) copy start block */
+		uint64_t zt_blks_copied; /* number source blocks copied */
+	} zap_ptrtbl;
+
+	uint64_t zap_freeblk;		/* the next free block */
+	uint64_t zap_num_leafs;		/* number of leafs */
+	uint64_t zap_num_entries;	/* number of entries */
+	uint64_t zap_salt;		/* salt to stir into hash function */
+	uint64_t zap_normflags;		/* flags for u8_textprep_str() */
+	uint64_t zap_flags;		/* zap_flags_t */
+	/*
+	 * This structure is followed by padding, and then the embedded
+	 * pointer table.  The embedded pointer table takes up second
+	 * half of the block.  It is accessed using the
+	 * ZAP_EMBEDDED_PTRTBL_ENT() macro.
+	 */
+} zap_phys_t;
+
+/*
+ * TAKE NOTE:
+ * If zap_leaf_phys_t is modified, zap_leaf_byteswap() must be modified.
+ */
+typedef struct zap_leaf_phys {
+	struct zap_leaf_header {
+		/* Public to ZAP */
+		uint64_t lh_block_type;		/* ZBT_LEAF */
+		uint64_t lh_pad1;
+		uint64_t lh_prefix;		/* hash prefix of this leaf */
+		uint32_t lh_magic;		/* ZAP_LEAF_MAGIC */
+		uint16_t lh_nfree;		/* number free chunks */
+		uint16_t lh_nentries;		/* number of entries */
+		uint16_t lh_prefix_len;		/* num bits used to id this */
+
+		/* Private to zap_leaf */
+		uint16_t lh_freelist;		/* chunk head of free list */
+		uint8_t lh_flags;		/* ZLF_* flags */
+		uint8_t lh_pad2[11];
+	} l_hdr; /* 2 24-byte chunks */
+
+	/*
+	 * The header is followed by a hash table with
+	 * ZAP_LEAF_HASH_NUMENTRIES(zap) entries.  The hash table is
+	 * followed by an array of ZAP_LEAF_NUMCHUNKS(zap)
+	 * zap_leaf_chunk structures.  These structures are accessed
+	 * with the ZAP_LEAF_CHUNK() macro.
+	 */
+
+	uint16_t l_hash[1];
+} zap_leaf_phys_t;
+
+#endif

@@ -67,7 +67,7 @@ class GenericDevice:
             # TODO: Implement gang blocks
             raise NotImplementedError("Gang blocks are still not supported")
         offset = bptr.get_dva(dva).offset
-        asize = bptr.get_dva(dva)._asize
+        asize = bptr.get_dva(dva)._asize << 9
         psize = bptr.psize
         if offset == 0 and psize == 0:
             return None
@@ -79,7 +79,7 @@ class GenericDevice:
             data = bptr._embeded_data
         else:
             data = self._read_physical(offset, asize, debug_dump, debug_prefix)
-            
+
             if bptr._cksum == 7 and DO_CHKSUM:
                 a,b,c,d = fletcher4(data[0:psize])
                 if not (a == bptr._checksum[0] and b == bptr._checksum[1] and c == bptr._checksum[2] and d == bptr._checksum[3]):
@@ -112,7 +112,7 @@ class GenericDevice:
             f = open(path.join(self._dump_dir, "{}.raw".format(debug_prefix)), "wb")
             f.write(data)
             f.close()
-            
+
         return data
 
     def _read_physical(self, offset, psize, debug_dump, debug_prefix):
@@ -152,11 +152,11 @@ class RaidzDevice(GenericDevice):
             print("[-] Raidz created with more bad disks than parity allows!")
 
     def _read_physical(self, offset, psize, debug_dump, debug_prefix):
-        
+
         if offset > 8*1024*1024*1024*1024: # 3tb
             print ("[-] offset limit reached %d" %(offset))
             return None
-        
+
         (cols, firstdatacol, skipstart) = self._map_alloc(offset, psize, self._ashift)
         col_data = []
         blockv = []

@@ -89,6 +89,11 @@ class BlockTCPHandler(BaseRequestHandler):
             print("[+] Block server: {} -- {}/{}".format(path, offset, count))
         try:
             f = open(path, 'rb')
+
+            f.seek(0,2)
+            sz = f.tell();
+            print("size: %d", sz)
+            
             i = 0;
             while i < count:
                 l = min(count-i, CHUNKSIZE)

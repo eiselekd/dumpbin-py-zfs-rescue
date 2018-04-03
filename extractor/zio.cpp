@@ -1,33 +1,22 @@
+#include "defs.h"
+#include <assert.h>
+#include <stddef.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
+#include "zio.h"
+
+#undef MAX
+#undef MIN
+#undef roundup
 #define roundup(x, y) ((((x) + ((y) - 1)) / (y)) * (y))
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
-typedef enum abd_flags {
-	ABD_FLAG_LINEAR	= 1 << 0,	/* is buffer linear (or scattered)? */
-	ABD_FLAG_OWNER	= 1 << 1,	/* does it own its data buffers? */
-	ABD_FLAG_META	= 1 << 2,	/* does this represent FS metadata? */
-	ABD_FLAG_MULTI_ZONE  = 1 << 3,	/* pages split over memory zones */
-	ABD_FLAG_MULTI_CHUNK = 1 << 4	/* pages split over multiple chunks */
-} abd_flags_t;
+#define B_FALSE 0
 
 typedef uint32_t uint_t ;
-
-typedef struct abd {
-	abd_flags_t	abd_flags;
-	uint_t		abd_size;	/* excludes scattered abd_offset */
-	struct abd	*abd_parent;
-	union {
-		struct abd_scatter {
-			uint_t		abd_offset;
-			uint_t		abd_nents;
-			struct scatterlist *abd_sgl;
-		} abd_scatter;
-		struct abd_linear {
-			void		*abd_buf;
-		} abd_linear;
-	} abd_u;
-} abd_t;
 
 typedef struct raidz_col {
 	uint64_t rc_devidx;		/* child device index for I/O */
@@ -57,8 +46,8 @@ typedef struct raidz_map {
 	raidz_col_t rm_col[1];		/* Flexible array of I/O columns */
 } raidz_map_t;
 
-#define ASSERT3U(l,op,r) assert(l op r);
-#define ASSERT(l) assert(l);
+//#define ASSERT3U(l,op,r) assert(l op r);
+//#define ASSERT(l) assert(l);
 
 typedef struct zio {
 	uint64_t	io_offset;
@@ -67,19 +56,34 @@ typedef struct zio {
 	void		*io_vsd;
 } zio_t;
 
-typedef enum boolean { B_FALSE, B_TRUE } boolean_t;
-
-abd_t *
-abd_alloc_linear(size_t size, boolean_t is_metadata)
-{
-	return 0;
+void abd_free(abd_t *abd) {
+	if (abd->abd_flags & ABD_FLAG_OWNER) {
+		free(abd->abd_buf);
+	}
+	free(abd);
 }
 
 abd_t *
-abd_get_offset_size(abd_t *sabd, size_t off, size_t size)
+abd_alloc_linear(uint64_t size, int is_metadata)
 {
-	ASSERT3U(off + size, <=, sabd->abd_size);
-	return 0;
+	(void)is_metadata;
+	abd_t *c = (abd_t *)malloc(sizeof(abd_t));
+	c->abd_flags = (abd_flags_t) (ABD_FLAG_OWNER | ABD_FLAG_LINEAR);
+	c->abd_parent = 0;
+	c->abd_size = size;
+	c->abd_buf = malloc(size);;
+	return c;
+}
+
+abd_t *
+abd_get_offset_size(abd_t *sabd, size_t off, uint64_t size)
+{
+	abd_t *c = (abd_t *)malloc(sizeof(abd_t));
+	c->abd_flags = (abd_flags_t) 0;
+	c->abd_parent = sabd;
+	c->abd_size = size;
+	c->abd_buf = ((char*)c->abd_parent->abd_buf) + off;
+	return c;
 }
 
 /*
@@ -105,7 +109,7 @@ vdev_raidz_map_alloc(zio_t *zio, uint64_t ashift, uint64_t dcols,
 	uint64_t q, r, c, bc, col, acols, scols, coff, devidx, asize, tot;
 	uint64_t off = 0;
 
-	printf("[+] : 0x%llx:0x%lx ashift:%d,%d,%d\n", (long long unsigned)zio->io_offset, (long unsigned)zio->io_size, ashift, dcols, nparity);
+	printf("[+] : 0x%llx:0x%lx ashift:%lu,%lu,%lu\n", (long long unsigned)zio->io_offset, (long unsigned)zio->io_size, ashift, dcols, nparity);
 
 	/*
 	 * "Quotient": The number of data sectors for this stripe on all but
@@ -141,7 +145,7 @@ vdev_raidz_map_alloc(zio_t *zio, uint64_t ashift, uint64_t dcols,
 
 	ASSERT3U(acols, <=, scols);
 
-	rm = malloc(offsetof(raidz_map_t, rm_col[scols]));
+	rm = (raidz_map_t *) malloc(sizeof(raidz_map_t) + ((scols-1) * sizeof(raidz_col_t)));
 
 	rm->rm_cols = acols;
 	rm->rm_scols = scols;
@@ -237,10 +241,196 @@ vdev_raidz_map_alloc(zio_t *zio, uint64_t ashift, uint64_t dcols,
 			rm->rm_skipstart = 1;
 	}
 
-	/* init RAIDZ parity ops */
-
 	return (rm);
 }
+
+const char *DMU_TYPE_DESC[] = {
+    "unallocated",              // 0
+    "object directory",         // 1
+    "object array",             // 2
+    "packed nvlist",            // 3
+    "packed nvlist size",       // 4
+    "bpobj",                    // 5
+    "bpobj header",             // 6
+    "SPA space map header",     // 7
+    "SPA space map",            // 8
+    "ZIL intent log",           // 9
+    "DMU dnode",                // 10
+    "DMU objset",               // 11
+    "DSL directory",            // 12
+    "DSL directory child map",  // 13
+    "DSL dataset snap map",     // 14
+    "DSL props",                // 15
+    "DSL dataset",              // 16
+    "ZFS znode",                // 17
+    "ZFS V0 ACL",               // 18
+    "ZFS plain file",           // 19
+    "ZFS directory",            // 20
+    "ZFS master node",          // 21
+    "ZFS delete queue",         // 22
+    "zvol object",              // 23
+    "zvol prop",                // 24
+    "other uint8[]",            // 25
+    "other uint64[]",           // 26
+    "other ZAP",                // 27
+    "persistent error log",     // 28
+    "SPA history",              // 29
+    "SPA history offsets",      // 30
+    "Pool properties",          // 31
+    "DSL permissions",          // 32
+    "ZFS ACL",                  // 33
+    "ZFS SYSACL",               // 34
+    "FUID table",               // 35
+    "FUID table size",          // 36
+    "DSL dataset next clones",  // 37
+    "scan work queue",          // 38
+    "ZFS user/group used",      // 39
+    "ZFS user/group quota",     // 40
+    "snapshot refcount tags",   // 41
+    "DDT ZAP algorithm",        // 42
+    "DDT statistics",           // 43
+    "System attributes",        // 44
+    "SA master node",           // 45
+    "SA attr registration",     // 46
+    "SA attr layouts",          // 47
+    "scan translations",        // 48
+    "deduplicated block",       // 49
+    "DSL deadlist map",         // 50
+    "DSL deadlist map hdr",     // 51
+    "DSL dir clones",           // 52
+    "bpobj subobj"              // 53
+};
+
+void
+vdev_raidz_free(raidz_map_t *rm)
+{
+	uint i;
+	for (i = 0; i < rm->rm_cols; i++) {
+		abd_free(rm->rm_col[i].rc_abd);
+	}
+	free(rm);
+}
+
+Raidz1Device::Raidz1Device(std::vector<std::string> &vdevs) : vdevs(vdevs) {
+	assert(vdevs.size() == DCOLS);
+
+
+};
+
+abd_t *Raidz1Device::read_physical(uint64_t offset, uint64_t psize)
+{
+ 	zio_t io; uint i;
+	uint64_t ashift = 12;
+	raidz_map_t *rm;
+	abd_t *c;
+
+	io.io_offset = offset;
+	io.io_size = psize;
+	io.io_abd = c = abd_alloc_linear(psize, B_FALSE);
+
+	rm = vdev_raidz_map_alloc(&io, ASHIFT, DCOLS, NPARITY);
+
+	for (i = 0; i < rm->rm_cols; i++) {
+		read_at(rm->rm_col[i].rc_abd, rm->rm_col[i].rc_devidx, rm->rm_col[i].rc_offset, rm->rm_col[i].rc_size);
+	}
+
+	vdev_raidz_free(rm);
+	return c;
+}
+
+int Raidz1Device::read_at(abd_t *c, int vdev, uint64_t offset, uint64_t psize)
+{
+	int fd;
+	fd = open(vdevs[vdev].c_str(), O_RDONLY);
+	pread64(fd, c->abd_buf, psize, offset);
+	close(fd);
+}
+
+int Raidz1Device::loadLabel(int dev, int labidx)
+{
+	vdev_label_t l;
+	abd_t abd;
+	abd.abd_buf = &l;
+	uint64_t offset = 0;
+	uint64_t psize = sizeof(vdev_label_t);
+	struct uberblock *u;
+	int usz = 1 << ASHIFT; int i;
+	int ucnt = sizeof(l.vl_uberblock) / usz;
+	read_at(&abd, dev, offset, psize);
+	for (i = 0; i < ucnt; i++) {
+		u = (struct uberblock *)&(l.vl_uberblock[i*usz]);
+		tgxs[u->ub_txg] = *u;
+	}
+}
+
+int Raidz1Device::loadMos(uint64_t tgx)
+{
+	struct uberblock u;
+	u = tgxs[tgx];
+
+	DNode *d = loadDnode(u.ub_rootbp);
+	assert(d->type() == DMU_OT_DSL_DATASET);
+	DSLDataset *mos = static_cast<DSLDataset*>(d);
+
+	for (uint64_t i = 0; i < mos->len(); i++) {
+		DNode *e = (*mos)[i];
+		if (e && e->type() == DMU_OT_DSL_DATASET) {
+			datasets[i] = e;
+		}
+	}
+
+	DNode *root_ds = (*mos)[1];
+	assert(root_ds->type() == DMU_OT_OBJECT_DIRECTORY);
+	Zap *root_ds_z = root_ds->zap();
+	uint64_t rootdir_id = (*root_ds_z)["root_dataset"];
+	DNode *rdir = (*mos)[rootdir_id];
+
+}
+
+DNode *Raidz1Device::loadDnode(blkptr_t &p)
+{
+	dnode_phys_t *d;
+	abd_t *c;
+	c = loadBlkPtr(p);
+	if (!c)
+		return 0;
+	d = (dnode_phys_t *)c->abd_buf;
+	switch (d->dn_type) {
+	case DMU_OT_DSL_DIR:
+
+		break;
+	case DMU_OT_DSL_DATASET:
+
+		break;
+	}
+
+	return 0;
+}
+
+abd_t *Raidz1Device::loadBlkPtr(blkptr_t &p)
+{
+	abd_t *c = 0;
+	for (int i = 0; i < 3; i++) {
+		dva d = p.blk_dva[i];
+		uint64_t asize;
+		uint64_t offset;
+		asize = (d.dva_word[0] & 0xffffffUL) << 9;
+		offset = d.dva_word[1] & 0x7fffffffffffffffUL;
+		c = read_physical(offset, asize);
+		if (c) {
+			return c;
+		}
+	}
+	return 0;
+}
+
+
+
+int Raidz1Device::loadChildDS(uint64_t dsid)
+{
+
+}
+
 
 /*
   Local Variables:

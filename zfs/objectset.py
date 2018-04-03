@@ -30,6 +30,12 @@
 from zfs.dnode import DNode
 from zfs.blocktree import BlockTree
 
+class blockData:
+    def __init__(self, bp, dva, data):
+        self._bp = bp
+        self._dva = dva
+        self._data = data
+    
 
 class ObjectSet:
 
@@ -96,14 +102,14 @@ class ObjectSet:
             bp = self._blocktree[blockid]
             if bp is not None:
                 for dva in range(3):
-                    block_data = self._vdev.read_block(bp, dva=dva)
-                    if block_data:
-                        break
+                    data = self._vdev.read_block(bp, dva=dva)
+                    if data:
+                        block_data = blockData(bp,dva,data)
             self._block_cache[blockid] = block_data
         if block_data is None:
             return None
         dnid = dnode_id % self._dnodes_per_block
-        dnode = DNode(data=block_data[dnid*512:(dnid+1)*512])
+        dnode = DNode(data=block_data._data[dnid*512:(dnid+1)*512], block_data=block_data, dnid=dnid )
         return dnode
 
     def __len__(self):

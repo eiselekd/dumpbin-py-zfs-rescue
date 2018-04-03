@@ -43,7 +43,7 @@ libspl_assert(const char *buf, const char *file, const char *func, int line)
 
 /* printf version of libspl_assert */
 static inline void
-libspl_assertf(const char *file, const char *func, int line, char *format, ...)
+libspl_assertf(const char *file, const char *func, int line, const char *format, ...)
 {
 	va_list args;
 
