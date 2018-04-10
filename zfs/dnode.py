@@ -317,8 +317,8 @@ class DNode:
         bptrs = " ".join(["blkptr[{}]={}".format(i, v) for i, v in enumerate(self._blkptr)])
         bonus = " bonus[{}]".format(self._bonuslen) if self._bonuslen else ""
         src = ""
-        if not (self._src_block_data is None):
-            src = str(self._src_block_data._bp) + (":[%d:%d]" %(self._src_block_data._dva, self._src_dnid))
+        #if not (self._src_block_data is None):
+        #    src = str(self._src_block_data._bp) + (":[%d:%d]" %(self._src_block_data._dva, self._src_dnid))
         if self._bonustype in [12, 16]:
             bonus += "=[{}]".format(self._bonus)
         return "[{}] {}B {}L/{} {}{} : src:{}".format(dmu_type, self._maxblkid+1,
