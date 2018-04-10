@@ -194,17 +194,17 @@ class BonusSysAttr:
         if objset is None:
             return;
         try:
-            ptr = 0
+            ptr = 8 #skip sa_hdr_phys_t
             for f in objset._sa._lay:
                 l = f['len']
                 b = data[ptr:ptr+l]
                 ptr += l
                 if (l == 8):
                     v, = struct.unpack("=Q",b)
-                elif (l == 8):
+                elif (l == 4):
                     v, = struct.unpack("=I",b)
                 else:
-                    v=None
+                    v = None
                 setattr(self,f['name'], v);
         except:
             pass
