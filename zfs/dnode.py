@@ -154,6 +154,8 @@ class BonusZnode:
         ) = struct.unpack("=18Q", data[:18*8])
         self.zp_inline_content = data[264:]
 
+    def size(self):
+        return self.zp_size
     def __str__(self):
         fields = [
             'zp_atime', 'zp_atime_ns',
@@ -188,9 +190,27 @@ class BonusZnode:
         )
 
 class BonusSysAttr:
-
-    def __init__(self, data):
-        pass
+    def __init__(self, objset, data):
+        if objset is None:
+            return;
+        try:
+            ptr = 0
+            for f in objset._sa._lay:
+                l = f['len']
+                b = data[ptr:ptr+l]
+                ptr += l
+                if (l == 8):
+                    v, = struct.unpack("=Q",b)
+                elif (l == 8):
+                    v, = struct.unpack("=I",b)
+                else:
+                    v=None
+                setattr(self,f['name'], v);
+        except:
+            pass
+    def size(self):
+        return self.zpl_size
+        
     def __str__(self):
         pass
 
@@ -198,7 +218,7 @@ DNODE_FLAG_USED_BYTES=(1 << 0)
 
 class DNode:
 
-    def __init__(self, data=None, block_data=None, dnid=None):
+    def __init__(self, data=None, block_data=None, dnid=None, objset=None):
         self._data = None
         self._type = None  # uint8_t 1
         self._indblkshift = None  # uint8_t 1
@@ -220,6 +240,7 @@ class DNode:
         self._datablksize = None
         self._src_block_data = block_data
         self._src_dnid = dnid
+        self._objset = objset
         if data is not None:
             self.parse(data)
 
@@ -262,8 +283,8 @@ class DNode:
             print("[+] DSL dataset: %s (DSL directory: %d)" %(str(self._bonus), self._bonus.ds_dir_obj))
         elif self._bonuslen and self._bonustype == 17:
             self._bonus = BonusZnode(bonus_data)
-        elif self._bonuslen and self._bonustype == 0x2c:
-            self._bonus = BonusSysAttr(bonus_data)
+        elif self._bonuslen and self._bonustype == 0x2c:            
+            self._bonus = BonusSysAttr(self._objset, bonus_data)
         else:
             self._bonus = bonus_data
 
@@ -325,7 +346,7 @@ class DNode:
                                              self._nlevels, 1 << self._indblkshift, bptrs, bonus, src)
 
     @staticmethod
-    def from_bptr(vdev, bptr, dvas=(0, 1)):
+    def from_bptr(vdev, bptr, dvas=(0, 1), objset=None):
         data = None
         for dva in dvas:
             data,c = vdev.read_block(bptr, dva=dva)
@@ -333,6 +354,6 @@ class DNode:
                 break
         if data is None:
             return None
-        dn = DNode()
+        dn = DNode(objset=objset)
         dn.parse(data)
         return dn

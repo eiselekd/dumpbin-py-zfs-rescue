@@ -85,7 +85,7 @@ class ObjectSet:
 
     def _load_os_dnode(self, os_bptr, dvas):
         print("[+] Loading object set dnode from", os_bptr)
-        return DNode.from_bptr(self._vdev, os_bptr, dvas=dvas)
+        return DNode.from_bptr(self._vdev, os_bptr, dvas=dvas, objset=self)
 
     def __getitem__(self, item):
         return self._get_dnode(item)
@@ -109,7 +109,7 @@ class ObjectSet:
         if block_data is None:
             return None
         dnid = dnode_id % self._dnodes_per_block
-        dnode = DNode(data=block_data._data[dnid*512:(dnid+1)*512], block_data=block_data, dnid=dnid )
+        dnode = DNode(data=block_data._data[dnid*512:(dnid+1)*512], block_data=block_data, dnid=dnid, objset=self )
         return dnode
 
     def __len__(self):

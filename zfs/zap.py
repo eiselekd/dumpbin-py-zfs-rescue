@@ -238,7 +238,7 @@ def _blockptrar_zap_factory(vdev, bpa, dbsize, nblocks):
     data = bytearray()
     for i in range(nblocks):
         d,c = vdev.read_block(bpa[i])
-        if not (d is None):
+        if c and not (d is None):
             data += d
     return _choose_zap_factory(data, dbsize)
 

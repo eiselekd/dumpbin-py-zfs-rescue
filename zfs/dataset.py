@@ -162,7 +162,7 @@ class Dataset(ObjectSet):
         total_len = 0
         corrupted = False
         tt = -time.time()
-        if file_dnode.bonus.zp_size > 0:
+        if file_dnode.bonus.size() > 0:
             for n in range(num_blocks):
                 bp = bt[n]
                 bad_block = False
@@ -184,7 +184,7 @@ class Dataset(ObjectSet):
         tt += time.time()
         if tt == 0.0:
             tt = 1.0  # Prevent division by zero for 0-length files
-        data_size = min(total_len, file_dnode.bonus.zp_size)
+        data_size = min(total_len, file_dnode.bonus.size())
         f.truncate(data_size)
         f.close()
         print("[+]  {} bytes in {:.3f} s ({:.1f} KiB/s)".format(total_len, tt, total_len / (1024 * tt)))
@@ -225,7 +225,7 @@ class Dataset(ObjectSet):
                     continue
                 file_info = entry_dnode.bonus
                 full_name = dir_prefix + name
-                print("[+]  Archiving {} ({} bytes)".format(name, file_info.zp_size))
+                print("[+]  Archiving {} ({} bytes)".format(name, file_info.size()))
                 if k == 'f':
                     success = self.extract_file(v, tmp_name)
                     if not success:
@@ -256,10 +256,12 @@ class Dataset(ObjectSet):
                     else:
                         # Link target is inline in the bonus data
                         tar_info.linkname = safe_decode_string(file_info.zp_inline_content[:file_info.zp_size])
-                tar_info.mtime = file_info.zp_mtime
-                tar_info.mode = file_info.zp_mode  # & 0x1ff
-                tar_info.uid = file_info.zp_uid
-                tar_info.gid = file_info.zp_gid
+                
+                #tar_info.mtime = file_info.zp_mtime
+                #tar_info.mode = file_info.zp_mode  # & 0x1ff
+                #tar_info.uid = file_info.zp_uid
+                #tar_info.gid = file_info.zp_gid
+                
                 # print("[+]  Archiving {} bytes from {}".format(tar_info.size, tar_info.name))
                 # f = FileObj(self._vdev, entry_dnode) if k == 'f' else None
                 try:

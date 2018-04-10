@@ -108,13 +108,14 @@ class GenericDevice:
                     print("[-]  Unsupported compression algorithm")
                 return None,cksum
                 # data = lz4.frame.decompress(data)
-            if len(data) < lsize:
-                data += b'\0' * (lsize - len(data))
         if debug_dump:
             f = open(path.join(self._dump_dir, "{}.raw".format(debug_prefix)), "wb")
             f.write(data)
             f.close()
-
+        if len(data) < lsize:
+            data += b'\0' * (lsize - len(data))
+        elif len(data) > lsize:
+            data = data[0:lsize]
         return data,cksum
 
     def _read_physical(self, offset, psize, debug_dump, debug_prefix):
