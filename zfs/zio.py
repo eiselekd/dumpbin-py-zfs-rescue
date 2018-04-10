@@ -140,7 +140,6 @@ class MirrorDevice(GenericDevice):
             f.close()
         return data
 
-
 class RaidzDevice(GenericDevice):
 
     def __init__(self, child_vdevs, nparity, proxy_addr, ashift=9, bad=None, repair=False, dump_dir="/tmp"):
