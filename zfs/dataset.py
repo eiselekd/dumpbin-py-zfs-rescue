@@ -170,7 +170,7 @@ class Dataset(ObjectSet):
                     print("[-]  Broken block tree")
                     bad_block = True
                 else:
-                    block_data = self._vdev.read_block(bp, dva=0)
+                    block_data,c = self._vdev.read_block(bp, dva=0)
                     if block_data is None:
                         print("[-]  Unreadable block")
                         bad_block = True

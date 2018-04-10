@@ -63,14 +63,15 @@ class GenericDevice:
         self._verbose = level
 
     def read_block(self, bptr, dva=0, debug_dump=False, debug_prefix="block"):
+        cksum=True
         if bptr.get_dva(dva).gang:
             # TODO: Implement gang blocks
             raise NotImplementedError("Gang blocks are still not supported")
         offset = bptr.get_dva(dva).offset
-        asize = bptr.get_dva(dva)._asize << 9
+        asize = bptr.get_dva(dva)._asize #<< 9
         psize = bptr.psize
         if offset == 0 and psize == 0:
-            return None
+            return None,cksum
         lsize = bptr.lsize
         if self._verbose >= LOG_VERBOSE:
             print("[+] Reading block at {}:{}".format(hex(offset)[2:], hex(asize)[2:]))
@@ -85,6 +86,7 @@ class GenericDevice:
                 if not (a == bptr._checksum[0] and b == bptr._checksum[1] and c == bptr._checksum[2] and d == bptr._checksum[3]):
                     print("expect:%016x:%016x:%016x:%016x" %(bptr._checksum[0],bptr._checksum[1],bptr._checksum[2],bptr._checksum[3]))
                     print("got   :%016x:%016x:%016x:%016x" %(a,b,c,d))
+                    cksum=False
 
         if bptr.compressed:
             if bptr.comp_alg in GenericDevice.CompType:
@@ -100,11 +102,11 @@ class GenericDevice:
                 if data is None:
                     if self._verbose >= LOG_VERBOSE:
                         print("[-]   Decompression failed")
-                    return None
+                    return None,cksum
             else:
                 if self._verbose >= LOG_VERBOSE:
                     print("[-]  Unsupported compression algorithm")
-                return None
+                return None,cksum
                 # data = lz4.frame.decompress(data)
             if len(data) < lsize:
                 data += b'\0' * (lsize - len(data))
@@ -113,7 +115,7 @@ class GenericDevice:
             f.write(data)
             f.close()
 
-        return data
+        return data,cksum
 
     def _read_physical(self, offset, psize, debug_dump, debug_prefix):
         raise RuntimeError("Attempted read from generic device!")

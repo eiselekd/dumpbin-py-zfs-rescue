@@ -102,7 +102,7 @@ class ObjectSet:
             bp = self._blocktree[blockid]
             if bp is not None:
                 for dva in range(3):
-                    data = self._vdev.read_block(bp, dva=dva)
+                    (data,c) = self._vdev.read_block(bp, dva=dva)
                     if data:
                         block_data = blockData(bp,dva,data)
             self._block_cache[blockid] = block_data

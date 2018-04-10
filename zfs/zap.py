@@ -237,13 +237,13 @@ def _choose_zap_factory(data, dbsize):
 def _blockptrar_zap_factory(vdev, bpa, dbsize, nblocks):
     data = bytearray()
     for i in range(nblocks):
-        d = vdev.read_block(bpa[i])
+        d,c = vdev.read_block(bpa[i])
         if not (d is None):
             data += d
     return _choose_zap_factory(data, dbsize)
 
 def _indirect_zap_factory(vdev, bptr, dbsize, nblocks):
-    data = vdev.read_block(bptr)
+    data,c = vdev.read_block(bptr)
     if data is None:
         return None
     # Data contains first indirection block

@@ -64,7 +64,8 @@ class FileObj:
                     print("[-]  Broken block tree")
                     bad_block = True
                 else:
-                    self._buf = self._vdev.read_block(bptr, dva=0)
+                    _b,c = self._vdev.read_block(bptr, dva=0)
+                    self._buf = _b
                     if self._buf is None:
                         print("[-]  Unreadable block")
                         bad_block = True

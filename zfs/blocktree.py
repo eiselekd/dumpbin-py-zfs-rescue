@@ -47,7 +47,7 @@ class BlockTree:
     def _load_from_bptr(self, bptr):
         block_data = None
         for dva in range(3):
-            block_data = self._vdev.read_block(bptr, dva=dva)
+            block_data,c = self._vdev.read_block(bptr, dva=dva)
             if block_data:
                 break
         if block_data is None:
@@ -81,7 +81,7 @@ class BlockTree:
                 b = bpa[i]
                 bpa_data = None
                 for dva in range(3):
-                    bpa_data = self._vdev.read_block(b, dva=dva)
+                    bpa_data,c = self._vdev.read_block(b, dva=dva)
                     if bpa_data:
                         break
                 next_bpa = None
