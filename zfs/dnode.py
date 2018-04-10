@@ -329,7 +329,7 @@ class DNode:
         data = None
         for dva in dvas:
             data,c = vdev.read_block(bptr, dva=dva)
-            if data:
+            if data and c:
                 break
         if data is None:
             return None
