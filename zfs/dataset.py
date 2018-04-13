@@ -77,7 +77,7 @@ class Dataset(ObjectSet):
             # try load System Attribute Layout and registry:
             try:
                 self._sa = SystemAttr(self._vdev, self, z["SA_ATTRS"]);
-            except Exception as e:
+            except Exception as e: 
                 print("[-] Unable to parse System Attribute tables: %s" %(str(e)))   
 
         if self._rootdir_id is None:

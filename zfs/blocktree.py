@@ -85,7 +85,7 @@ class BlockTree:
                     if bpa_data and c:
                         break
                 next_bpa = None
-                if bpa_data is not None:
+                if bpa_data is not None: 
                     next_bpa = BlockPtrArray(bpa_data)
                 else:
                     print("[-] Block tree is broken at", b)

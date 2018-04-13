@@ -38,19 +38,19 @@ from zfs.zap import zap_factory
 
 from os import path
 
-#BLK_PROXY_ADDR = ("localhost", 24892)       # network block server
-BLK_PROXY_ADDR = ("files:", "disks.tab")  # local device nodes
+BLK_PROXY_ADDR = ("localhost", 24892)       # network block server
+#BLK_PROXY_ADDR = ("files:", "disks.tab")  # local device nodes
 
 #BLK_INITIAL_DISK = "/dev/dsk/c3t0d0s7"      # device to read the label from
-BLK_INITIAL_DISK = "/dev/loop0"      # device to read the label from
-#BLK_INITIAL_DISK = "/dev/disk/by-id/ata-WDC_WD30EFRX-68EUZN0_WD-WCC4N1KPRKPX-part1"      # device to read the label from
-TXG = -1                                    # select specific transaction or -1 for the active one
-#TXG = 108199        # 108324                           # select specific transaction or -1 for the active one
+#BLK_INITIAL_DISK = "/dev/loop0"      # device to read the label from
+BLK_INITIAL_DISK = "/dev/disk/by-id/ata-WDC_WD30EFRX-68EUZN0_WD-WCC4N1KPRKPX-part1"      # device to read the label from
+#TXG = -1                                    # select specific transaction or -1 for the active one
+TXG = 108199        # 108324                           # select specific transaction or -1 for the active one
 
 TEMP_DIR = "/tmp"
 OUTPUT_DIR = "rescued"
-DS_TO_ARCHIVE = [259]
-#DS_TO_ARCHIVE = [42]
+#DS_TO_ARCHIVE = [259]
+DS_TO_ARCHIVE = [42]
 DS_OBJECTS = []                             # objects to export
 DS_OBJECTS_SKIP = []                        # objects to skip
 DS_SKIP_TRAVERSE = []                       # datasets to skip while exporting file lists
@@ -66,7 +66,7 @@ id_l.read(0)
 id_l.debug()
 all_disks = id_l.get_vdev_disks()
 
-pool_dev = RaidzDevice(all_disks, 1, BLK_PROXY_ADDR, bad=[3], ashift=id_l._ashift, repair=True, dump_dir=OUTPUT_DIR)
+pool_dev = RaidzDevice(all_disks, 1, BLK_PROXY_ADDR, bad=None, ashift=id_l._ashift, repair=False, dump_dir=OUTPUT_DIR)
 # pool_dev = MirrorDevice(all_disks, BLK_PROXY_ADDR, dump_dir=OUTPUT_DIR)
 
 print("[+] Loading uberblocks from child vdevs")

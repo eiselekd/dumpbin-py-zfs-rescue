@@ -300,7 +300,7 @@ class DNode:
     def bonus(self):
         return self._bonus
 
-    @property
+    @property 
     def type(self):
         return self._type
 

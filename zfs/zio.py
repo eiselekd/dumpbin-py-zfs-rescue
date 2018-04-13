@@ -38,7 +38,7 @@ import struct;
 LOG_QUIET = 0
 LOG_VERBOSE = 1
 LOG_NOISY = 5
-DO_CHKSUM = 0
+DO_CHKSUM = 1
 
 def roundup(x, y):
     return ((x + y - 1) // y) * y
@@ -131,7 +131,7 @@ class MirrorDevice(GenericDevice):
             print("[-] Mirror created with more bad disks than copies!")
 
     def _read_physical(self, offset, psize, debug_dump, debug_prefix):
-        if self._verbose >= LOG_NOISY:
+        if self._verbose >= LOG_NOISY: 
             print("[+]  Reading from {}:{}:{}".format(self._devs[0], offset, psize))
         data = self._bp.read(self._devs[0], offset + 0x400000, psize)
         if debug_dump:

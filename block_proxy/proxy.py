@@ -31,7 +31,8 @@ import struct
 import socket
 
 SECTOR_SIZE = 512
-
+VERBOSE=0
+VERBOSEERR=1
 
 class BlockProxy:
 
@@ -86,7 +87,7 @@ class BlockProxy:
         for block in blockv:
             count += block[2]
         buf = bytearray(count)
-        
+        VERBOSE
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             sock.connect((self.host, self.port))
@@ -113,7 +114,8 @@ class BlockProxy:
                 answer += sock.recv(1)
             a, off, l = struct.unpack('=BQQ', answer)
             if a == ord('n'):
-                print("[>] 'n' received");
+                if VERBOSE:
+                    print("[>] 'n' received");
                 if (count <= 0):
                     break;
                 count -= l;
@@ -122,10 +124,12 @@ class BlockProxy:
                     off += nbytes
                     l -= nbytes
             elif a == ord('e'):
-                print("[>] 'e' received");
+                if VERBOSEERR:
+                    print("[>] 'e' received");
                 break;
             elif a == ord('l'):
-                print("[>] 'l' received");
+                if VERBOSE:
+                    print("[>] 'l' received");
                 break;
             else:
                 print("Unknown code '%d'" %(a))

@@ -93,7 +93,7 @@ class ObjectSet:
     def _get_dnode(self, dnode_id):
         if self._broken:
             print("[-] Accessing a broken object set!")
-            return None
+            return None 
         blockid = dnode_id // self._dnodes_per_block
         if blockid in self._block_cache:
             block_data = self._block_cache[blockid]

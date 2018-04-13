@@ -36,7 +36,7 @@ class DVA:
 
     def __init__(self, qword0, qword1):
         self._asize_r = (qword0 & 0xffffff) << 9
-        self._asize = (qword0 & 0xffffff) << 9
+        self._asize = ((qword0 & 0xffffff)) << 9
         self._grid = (qword0 >> 24) & 0xff
         self._vdev = (qword0 >> 32)
         self._offset = (qword1 & 0x7fffffffffffffff) << 9
@@ -46,7 +46,7 @@ class DVA:
         gang = "G:" if self._gang else ""
         grid = "/grid={}".format(self._grid) if self._grid else ""
         return "<{}{}:{}:{}{}>".format(
-            gang, self._vdev, hex(self._offset)[2:], hex(self._asize)[2:], grid
+            gang, self._vdev, hex(self._offset)[2:], hex(self._asize_r)[2:], grid
         )
 
     @property
