@@ -16,7 +16,7 @@
 #   this software without specific prior written permission.
 #
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# AND ANY EXPRESS OR IMPLIED WARRANTIEself._embeded_lsizeS, INCLUDING, BUT NOT LIMITED TO, THE
 # IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
 # DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
 # FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
@@ -39,6 +39,7 @@ LOG_QUIET = 0
 LOG_VERBOSE = 1
 LOG_NOISY = 5
 DO_CHKSUM = 1
+DO_PARITYCHECK = 1
 
 def roundup(x, y):
     return ((x + y - 1) // y) * y
@@ -64,11 +65,16 @@ class GenericDevice:
 
     def read_block(self, bptr, dva=0, debug_dump=False, debug_prefix="block"):
         cksum=True
+        if bptr.empty:
+            return None,False
+        
         if bptr.get_dva(dva).gang:
             # TODO: Implement gang blocks
             raise NotImplementedError("Gang blocks are still not supported")
+        print("[>>] read: %s" %(str(bptr)))
+        
         offset = bptr.get_dva(dva).offset
-        asize = bptr.get_dva(dva)._asize #<< 9
+        asize = bptr.get_dva(dva)._asize # << 9
         psize = bptr.psize
         if offset == 0 and psize == 0:
             return None,cksum
@@ -187,6 +193,13 @@ class RaidzDevice(GenericDevice):
                 f = open(path.join(self._dump_dir, "{}-{}.{}:{}.raw".format(debug_prefix, c, devidx, offset)), "wb")
                 f.write(piece)
                 f.close()
+                
+        if DO_PARITYCHECK:
+            c = bytearray(col_data[0])
+            for b in range(1, len(col_data)):
+                self._xor(c, col_data[b])
+            
+                
         if self._repair and len(self._bad) > 0:
             # Only support a single bad drive
             devs = [c["rc_devidx"] for c in cols]

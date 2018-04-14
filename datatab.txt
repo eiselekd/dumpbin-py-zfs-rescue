@@ -1,3 +1,5 @@
-/dev/loop0	disk0.bin
-/dev/loop1	disk1.bin
-/dev/loop2	disk2.bin
+{
+	"/dev/disk/by-id/ata-WDC_WD30EZRX-00D8PB0_WD-WMC4N1642572-part1" : [ "/mnt/usb/parts-disk-id0-err-ata-WDC_WD30EZRX-00D8PB0_WD-WMC4N1642572-part1.0", "/mnt/usb/parts-disk-id0-err-ata-WDC_WD30EZRX-00D8PB0_WD-WMC4N1642572-part1.1", "/mnt/usb/parts-disk-id0-err-ata-WDC_WD30EZRX-00D8PB0_WD-WMC4N1642572-part1.2"],
+	"/dev/disk/by-id/ata-WDC_WD30EFRX-68EUZN0_WD-WCC4N1KPRKPX-part1" : [ "/mnt/usb/parts-disk-id1-ata-WDC_WD30EFRX-68EUZN0_WD-WCC4N1KPRKPX-part1.0", "/mnt/usb/parts-disk-id1-ata-WDC_WD30EFRX-68EUZN0_WD-WCC4N1KPRKPX-part1.1", "/mnt/usb/parts-disk-id1-ata-WDC_WD30EFRX-68EUZN0_WD-WCC4N1KPRKPX-part1.2"],
+	"/dev/disk/by-id/ata-WDC_WD30EFRX-68EUZN0_WD-WCC4N7ZXC1E0-part1" : [ "/mnt/usb/parts-disk-id2-ata-WDC_WD30EFRX-68EUZN0_WD-WCC4N7ZXC1E0-part1.0", "/mnt/usb/parts-disk-id2-ata-WDC_WD30EFRX-68EUZN0_WD-WCC4N7ZXC1E0-part1.1", "/mnt/usb/parts-disk-id2-ata-WDC_WD30EFRX-68EUZN0_WD-WCC4N7ZXC1E0-part1.2"]
+}

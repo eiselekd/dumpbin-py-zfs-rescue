@@ -223,6 +223,8 @@ class FatZap:
         return self._entries.get(item)
 
 def _choose_zap_factory(data, dbsize):
+    if (len(data) <8):
+        return MicroZap() # return empty microzap
     (block_type,) = struct.unpack("=Q", data[:8])
     if block_type == ZBT_MICRO:
         zap = MicroZap()

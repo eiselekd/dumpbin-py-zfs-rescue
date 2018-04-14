@@ -55,6 +55,18 @@ class Dataset(ObjectSet):
         super().__init__(vdev, os_dnode.bonus.bptr, dvas=dvas)
         self._rootdir_id = None
 
+    def analyze_tree(self,start=1):
+        for n in range(start,self.max_obj_id): #range(self.max_obj_id):
+            try:
+                d = self[n]
+            except:
+                d=None
+                pass
+            if d is None:
+                # Bad - very likely the blocmax_obj_idk tree is broken
+                print("[-]  Object set (partially) unreachable")
+                #break
+            print("[+]  dnode[{:>2}]={}".format(n, d))
     def analyse(self):
         if self.broken:
             print("[-]  Dataset is broken")
@@ -66,7 +78,7 @@ class Dataset(ObjectSet):
             return
         print("[+]  Master node", master_dnode)
         if master_dnode.type != 21:
-            print("[-]  Master node object is of wrong type")
+            print("[-]  Master node object imax_obj_ids of wrong type")
             return
         z = zap_factory(self._vdev, master_dnode)
         if z:

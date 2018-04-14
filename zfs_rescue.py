@@ -39,18 +39,20 @@ from zfs.zap import zap_factory
 from os import path
 
 BLK_PROXY_ADDR = ("localhost", 24892)       # network block server
-#BLK_PROXY_ADDR = ("files:", "disks.tab")  # local device nodes
+BLK_PROXY_ADDR = ("files:", "datatab.txt")  # local device nodes
 
 #BLK_INITIAL_DISK = "/dev/dsk/c3t0d0s7"      # device to read the label from
 #BLK_INITIAL_DISK = "/dev/loop0"      # device to read the label from
 BLK_INITIAL_DISK = "/dev/disk/by-id/ata-WDC_WD30EFRX-68EUZN0_WD-WCC4N1KPRKPX-part1"      # device to read the label from
+#BLK_INITIAL_DISK = "/dev/disk/by-id/ata-WDC_WD30EFRX-68EUZN0_WD-WCC4N7ZXC1E0-part1"
 #TXG = -1                                    # select specific transaction or -1 for the active one
-TXG = 108199        # 108324                           # select specific transaction or -1 for the active one
+#TXG = 108199        # 108324                           # select specific transaction or -1 for the active one
+TXG = 108199
 
 TEMP_DIR = "/tmp"
 OUTPUT_DIR = "rescued"
 #DS_TO_ARCHIVE = [259]
-DS_TO_ARCHIVE = [42]
+DS_TO_ARCHIVE = [42] # 21
 DS_OBJECTS = []                             # objects to export
 DS_OBJECTS_SKIP = []                        # objects to skip
 DS_SKIP_TRAVERSE = []                       # datasets to skip while exporting file lists
@@ -66,12 +68,12 @@ id_l.read(0)
 id_l.debug()
 all_disks = id_l.get_vdev_disks()
 
-pool_dev = RaidzDevice(all_disks, 1, BLK_PROXY_ADDR, bad=None, ashift=id_l._ashift, repair=False, dump_dir=OUTPUT_DIR)
+pool_dev = RaidzDevice(all_disks, 1, BLK_PROXY_ADDR, bad=[0], ashift=id_l._ashift, repair=False, dump_dir=OUTPUT_DIR)
 # pool_dev = MirrorDevice(all_disks, BLK_PROXY_ADDR, dump_dir=OUTPUT_DIR)
 
 print("[+] Loading uberblocks from child vdevs")
 uberblocks = {}
-for disk in all_disks:
+for disk in [ "/dev/disk/by-id/ata-WDC_WD30EFRX-68EUZN0_WD-WCC4N1KPRKPX-part1", "/dev/disk/by-id/ata-WDC_WD30EFRX-68EUZN0_WD-WCC4N7ZXC1E0-part1" ]:
     bp = BlockProxy(BLK_PROXY_ADDR)
     l0 = Label(bp, disk)
     l0.read(0)
@@ -101,10 +103,11 @@ datasets = {}
 
 # Try all copies of the MOS
 for dva in range(3):
-    mos = ObjectSet(pool_dev, root_blkptr, dvas=(dva,))
+    try:
+        mos = ObjectSet(pool_dev, root_blkptr, dvas=(dva,))
+    except:
+        continue
     for n in range(len(mos)):
-        if n == 259:
-            print ("259")
         d = mos[n]
         print("[+]  dnode[{:>3}]={}".format(n, d))
         if d and d.type == 16:
@@ -159,6 +162,8 @@ for dsid in datasets:
 for dsid in DS_TO_ARCHIVE:
     ddss = Dataset(pool_dev, datasets[dsid], dvas=(0,1))
     ddss.analyse()
+    ddss.analyze_tree(start=1)
+    
     # ddss.prefetch_object_set()
     # continue
     if len(DS_OBJECTS) > 0:

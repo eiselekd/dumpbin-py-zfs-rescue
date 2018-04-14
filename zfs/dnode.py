@@ -342,8 +342,8 @@ class DNode:
         #    src = str(self._src_block_data._bp) + (":[%d:%d]" %(self._src_block_data._dva, self._src_dnid))
         if self._bonustype in [12, 16]:
             bonus += "=[{}]".format(self._bonus)
-        return "[{}] {}B {}L/{} {}{} : src:{}".format(dmu_type, self._maxblkid+1,
-                                             self._nlevels, 1 << self._indblkshift, bptrs, bonus, src)
+        return "[{}] {}B {}L/{} {}{}".format(dmu_type, self._maxblkid+1,
+                                             self._nlevels, 1 << self._indblkshift, bptrs, bonus)
 
     @staticmethod
     def from_bptr(vdev, bptr, dvas=(0, 1), objset=None):

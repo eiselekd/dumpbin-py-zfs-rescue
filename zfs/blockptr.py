@@ -24,7 +24,7 @@
 # SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 # CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# OF THIS SOFTWARE, EVEN IF ADVISED OF 108193THE POSSIBILITY OF SUCH DAMAGE.
 
 
 import struct
@@ -145,7 +145,7 @@ class BlockPtr:
 
     @property
     def empty(self):
-        return self._dva0.null
+        return self._dva0.null and self._dva1.null and self._dva2.null and not self._embeded
 
     def __str__(self):
         if self.empty:
@@ -163,6 +163,12 @@ class BlockPtr:
             comp = COMP_DESC[self._comp]
         except IndexError:
             comp = "unk_{}".format(self._comp)
+        if self._embeded:
+            return "<[L{} {}] {}L/{}P embedded={} birth={} {} {} {} {} fill={}>".format(
+            self._lvl, dmu_type, hex(self._lsize)[2:], hex(self._psize)[2:],
+            self._embeded_lsize, self._birth_txg, cksum, comp, ENDIAN_DESC[self._E], gang,
+            self._fill_count)
+            
         return "<[L{} {}] {}L/{}P DVA[0]={} DVA[1]={} DVA[2]={} birth={} {} {} {} {} fill={}>".format(
             self._lvl, dmu_type, hex(self._lsize)[2:], hex(self._psize)[2:],
             self._dva0, self._dva1, self._dva2,

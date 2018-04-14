@@ -118,6 +118,9 @@ class NVPairParser:
                 break
             # Get name
             name, name_len = data_stream.read_string()
+            
+            #print("[+] nv: %s" %(name))
+            
             # Get datatype
             data_type = data_stream.read_uint32()
             # Get item count

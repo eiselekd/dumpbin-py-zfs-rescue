@@ -28,7 +28,7 @@
 
 
 import struct
-import socket
+import socket, json, os
 
 SECTOR_SIZE = 512
 VERBOSE=0
@@ -48,14 +48,20 @@ class BlockProxy:
         self._trans_table = {}
         self._use_files = True
         try:
-            f = open(self.port, 'r')
-            entries = [l.strip() for l in f.readlines() if l[0] != '#']
-            f.close()
-            for entry in entries:
-                (path, sub) = entry.split('\t')
-                self._trans_table[path] = sub
-        except:
-            pass
+            with open(self.port, 'r') as f:
+                self._trans_table = json.load(f)
+        except Exception as e:
+            print("Cannot open %s (%s)" %(self.port,str(e)))
+        for k,v in self._trans_table.items():
+            if isinstance(v,list):
+                self._use_1tb = True
+                for i in v[:-1]:
+                    b = os.path.getsize(i)
+                    if not b == 1024*1024*1024*1024:
+                        raise Exception("Expecting parts to be 1TB")
+                b = os.path.getsize(v[-1])
+                if not b <= 1024*1024*1024*1024:
+                    raise Exception("Expecting parts to be <= 1TB")
 
     def read(self, dev_path, offset, count):
         if self._use_files:
@@ -138,12 +144,18 @@ class BlockProxy:
         # print("[+] BlockProxy: received {} bytes".format(len(buf)))
         
     def _read_files(self, dev_path, offset, count):
-        if dev_path not in self._device_files:
+        idx = offset // (1024*1024*1024*1024)
+        if self._use_1tb:
+            dev_path_r = dev_path + (".%d" %(idx))                    
+            offset = offset % (1024*1024*1024*1024)
+        if dev_path_r not in self._device_files:
             trans_path = dev_path
             if trans_path in self._trans_table:
                 trans_path = self._trans_table[trans_path]
-            self._device_files[dev_path] = open(trans_path, 'rb')
-        f = self._device_files[dev_path]
+                if self._use_1tb:
+                    trans_path = trans_path[idx]
+            self._device_files[dev_path_r] = open(trans_path, 'rb')
+        f = self._device_files[dev_path_r]
         f.seek(offset)
         data = f.read(count)
         return data
