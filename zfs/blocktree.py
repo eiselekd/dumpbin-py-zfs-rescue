@@ -69,6 +69,7 @@ class BlockTree:
         if self._levels == 1:
             return self._root if item == 0 else None
         indices = self._get_level_indices(item)
+        print("[t] "+str(indices))
         bpa = self._root
         for (l, i) in enumerate(indices[:-1]):
             level_cache = self._cache.get(l)

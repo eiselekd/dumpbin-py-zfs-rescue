@@ -44,7 +44,6 @@ DO_PARITYCHECK = 1
 def roundup(x, y):
     return ((x + y - 1) // y) * y
 
-
 class GenericDevice:
     COMP_TYPE_ON = 1
     COMP_TYPE_LZJB = 3
@@ -166,6 +165,9 @@ class RaidzDevice(GenericDevice):
             return None
 
         (cols, firstdatacol, skipstart) = self._map_alloc(offset, psize, self._ashift)
+        if (skipstart):
+            print(",")
+        
         col_data = []
         blockv = []
         for c in range(len(cols)):
@@ -195,9 +197,10 @@ class RaidzDevice(GenericDevice):
                 f.close()
                 
         if DO_PARITYCHECK:
-            c = bytearray(col_data[0])
-            for b in range(1, len(col_data)):
-                self._xor(c, col_data[b])
+            if len(col_data):
+                c = bytearray(col_data[0])
+                for b in range(1, len(col_data)):
+                    self._xor(c, col_data[b])
             
                 
         if self._repair and len(self._bad) > 0:

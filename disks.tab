@@ -1,3 +1,5 @@
-/dev/loop0	disk0.bin
-/dev/loop1	disk1.bin
-/dev/loop2	disk2.bin
+{
+	"/dev/loop0":"disk0.bin",
+	"/dev/loop1":"disk1.bin",
+	"/dev/loop2":"disk2.bin"
+}

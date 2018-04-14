@@ -40,6 +40,7 @@ class BlockProxy:
         self.host = host_port[0]
         self.port = host_port[1]
         self._use_files = False
+        self._use_1tb = False
         if self.host == 'files:':
             self._init_files()
 
@@ -148,6 +149,8 @@ class BlockProxy:
         if self._use_1tb:
             dev_path_r = dev_path + (".%d" %(idx))                    
             offset = offset % (1024*1024*1024*1024)
+        else:
+            dev_path_r = dev_path
         if dev_path_r not in self._device_files:
             trans_path = dev_path
             if trans_path in self._trans_table:
