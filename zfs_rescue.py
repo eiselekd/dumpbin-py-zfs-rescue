@@ -40,7 +40,7 @@ from os import path
 
 BLK_PROXY_ADDR = ("localhost", 24892)       # network block server
 
-testdisks=True
+testdisks=False
 if testdisks:
     INITIALDISKS = [ "/dev/loop0" ]
     BLK_INITIAL_DISK = "/dev/loop0"      # device to read the label from
