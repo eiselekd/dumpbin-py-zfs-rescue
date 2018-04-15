@@ -105,8 +105,8 @@ class zfsnode():
         return self._directory
     
     def extract_file(self):
-        if not self.isfile():
-            return
+        #if not self.isfile():
+        #    return
         self._cache_file = next(tempfile._get_candidate_names())
         print("[+] temporary file %s" %(self._cache_file))
         self.dataset.extract_file(self.datasetid, self._cache_file)

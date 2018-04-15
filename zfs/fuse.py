@@ -98,16 +98,18 @@ class zfsfuse(llfuse.Operations):
             yield (fsencode(name), attr, ino)
 
     def open(self, inode, flags, ctx):
-        self.dolog('[vvv] readdir for %d' %(inode))
         n = self.findinode(inode)
         n.extract_file()
+        self.dolog('[vvv] open for %d: %s' %(inode, n._cache_file))
         return inode
 
     def read(self, fh, off, size):
+        self.dolog('[+++] read for %d : %d-%d' %(fh, off, size))
         n = self.findinode(fh)
         return n.read(fh, off, size);
         
     def release(self, fd):
+        self.dolog('[^^^] release for %d' %(fd))
         n = self.findinode(fd)
         n.release_file()
     def releasedir(self,fd):
