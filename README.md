@@ -8,7 +8,7 @@ Fork of https://github.com/hiliev/py-zfs-rescue with the following improvements:
  * blkptr with embedded data
  * improved block server protocol
  * bigger than 2TB disk support
- * SystemAttributes, bonus type 0x2c
+ * support SystemAttributes, bonus type 0x2c
  * variable sectorsize
  * fuse (llfuse) interface for recovery
 
