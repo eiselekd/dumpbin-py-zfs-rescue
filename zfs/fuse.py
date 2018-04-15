@@ -19,7 +19,7 @@ class zfsfuse(llfuse.Operations):
         super(zfsfuse, self).__init__()
         try:
             self.log = logging.getLogger(__name__)
-            self.m = {} 
+            self.m = {}
             self.rootdir = dataset.rootdir(llfuse.ROOT_INODE)
             self.rootdir_inode = self.rootdir.inode()
             self._inode_map = { self.rootdir_inode : self.rootdir }
@@ -98,13 +98,17 @@ class zfsfuse(llfuse.Operations):
             yield (fsencode(name), attr, ino)
 
     def open(self, inode, flags, ctx):
-        raise llfuse.FUSEError(errno.ENOENT)
+        n = self.findinode(inode)
+        n.extract_file()
+        return inode
 
     def read(self, fh, off, size):
-        raise llfuse.FUSEError(errno.ENOENT)
-
+        n = self.findinode(fh)
+        return n.read(fh, off, size);
+        
     def release(self, fd):
-        pass
+        n = self.findinode(fd)
+        n.release_file()
     def releasedir(self,fd):
         pass
     

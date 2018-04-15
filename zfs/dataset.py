@@ -37,6 +37,7 @@ import csv
 import time
 import tarfile
 import os
+import tempfile
 
 MODE_UR = 0o400
 MODE_UW = 0o200
@@ -78,6 +79,7 @@ class zfsnode():
         self._directory = None
         self._inoderoot = inoderoot
         self._inode = self._inoderoot + inode
+        self._cache_file = None
     def name(self):
         return self._name
     def size(self):
@@ -86,6 +88,8 @@ class zfsnode():
         return self._inode
     def isdir(self):
         return self.stattype == "d"
+    def isfile(self):
+        return self.stattype == "f"
     def stat(self):
         return { 'st_atime' : 0 ,
                  'st_ctime' : 0,
@@ -99,6 +103,23 @@ class zfsnode():
         if self._directory is None:
             self._directory = self.dataset.readdir(self.datasetid, self._inoderoot)
         return self._directory
+    
+    def extract_file(self):
+        if not self.isfile():
+            return
+        self._cache_file = next(tempfile._get_candidate_names())
+        print("[+] temporary file %s" %(self._cache_file))
+        self.dataset.extract_file(self.datasetid, self._cache_file)
+        
+    def read(self, fh, off, size):
+        with open(self._cache_file, 'rb') as f:
+            f.seek(off)
+            return f.read(size)
+    
+    def release_file(self):
+        if not self._cache_file is None:
+           os.unlink(self._cache_file) 
+        pass
 
 class Dataset(ObjectSet):
 
