@@ -98,6 +98,7 @@ class zfsfuse(llfuse.Operations):
             yield (fsencode(name), attr, ino)
 
     def open(self, inode, flags, ctx):
+        self.dolog('[vvv] readdir for %d' %(inode))
         n = self.findinode(inode)
         n.extract_file()
         return inode
@@ -138,13 +139,13 @@ class mountpoint():
         fs = zfsfuse(self.dataset)
         fuse_options = set(llfuse.default_options)
         fuse_options.add('fsname=zfsrescue')
-        fuse_options.add('debug')
+        #fuse_options.add('debug')
         llfuse.init(fs, self.mountpoint, fuse_options)
         try:
             llfuse.main(workers=1)
         except Exception as e:
             print(str(e))
             llfuse.close(unmount=False)
-            raise
+            raise e
         llfuse.close()
 
