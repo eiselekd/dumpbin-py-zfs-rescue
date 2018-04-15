@@ -48,6 +48,28 @@ MODE_OR = 0o004
 MODE_OW = 0o002
 MODE_OX = 0o001
 
+class zfsnode():
+    def __init__(self, dataset, dnode, k, mode, v, size, name):
+        self.dataset = dataset
+        self.dnode = dnode
+        self.stattype = k
+        self.mode = mode
+        self.datasetid = v
+        self.size = size
+        self.name = name
+        pass
+    def nodeid():
+        return self.datasetid
+    def stat():
+        return { 'st_atime' : 0 ,
+                 'st_ctime' : 0,
+                 'st_gid' : 1 ,
+                 'st_mode' : self.mode,
+                 'st_mtime' : 0,
+                 'st_nlink' : 0,
+                 'st_size' : self.size,
+                 'st_uid' : 1 }
+        
 
 class Dataset(ObjectSet):
 
@@ -56,6 +78,9 @@ class Dataset(ObjectSet):
         self._rootdir_id = None
 
     def analyze_tree(self,start=1):
+        self.traverse_dir(self._rootdir_id,depth=3)
+        return
+    
         for n in range(start,self.max_obj_id): #range(self.max_obj_id):
             try:
                 d = self[n]
@@ -67,6 +92,9 @@ class Dataset(ObjectSet):
                 print("[-]  Object set (partially) unreachable")
                 #break
             print("[+]  dnode[{:>2}]={}".format(n, d))
+
+
+            
     def analyse(self):
         if self.broken:
             print("[-]  Dataset is broken")
@@ -95,11 +123,11 @@ class Dataset(ObjectSet):
         if self._rootdir_id is None:
             print("[-]  Root directory ID is not in master node")
             return
-        rootdir_dnode = self[self._rootdir_id]
-        if rootdir_dnode is None:
+        self.rootdir_dnode = self[self._rootdir_id]
+        if self.rootdir_dnode is None:
             print("[-]  Root directory dnode missing/unreachable")
             return
-        if rootdir_dnode.type != 20:
+        if self.rootdir_dnode.type != 20:
             print("[-]  Root directory object is of wrong type")
         num_dnodes = min(self.dnodes_per_block, self.max_obj_id+1)
         print("----------------------------------")
@@ -124,7 +152,11 @@ class Dataset(ObjectSet):
         if dir_dnode is None:
             print("[-]  Directory dnode {} unreachable".format(dir_dnode_id))
             return
-        zap = zap_factory(self._vdev, dir_dnode)
+        zap = None
+        try:
+            zap = zap_factory(self._vdev, dir_dnode)
+        except:
+            pass
         if zap is None:
             print("[-]  Unable to create ZAP object")
             return
@@ -139,9 +171,10 @@ class Dataset(ObjectSet):
                 mode = "?????????"
                 size = "?"
             else:
-                mode = entry_dnode.bonus.zp_mode
-                size = entry_dnode.bonus.zp_size
-                modes = [
+                try:
+                    mode = entry_dnode.bonus.zp_mode
+                    size = entry_dnode.bonus.zp_size
+                    modes = [
                     'r' if (mode & MODE_UR) else '-',
                     'w' if (mode & MODE_UW) else '-',
                     'x' if (mode & MODE_UX) else '-',
@@ -151,12 +184,46 @@ class Dataset(ObjectSet):
                     'r' if (mode & MODE_OR) else '-',
                     'w' if (mode & MODE_OW) else '-',
                     'x' if (mode & MODE_OX) else '-'
-                ]
-                mode = "".join(modes)
+                    ]
+                    mode = "".join(modes)
+                except:
+                    mode = "?????????"
+                    size = "?"
             print("{}{} {:>8} {:>14} {}{}".format(k, mode, v, size, dir_prefix, name))
             if k == 'd' and depth > 0:
                 self.traverse_dir(v, depth=depth-1, dir_prefix=dir_prefix+name+'/')
 
+    def readdir(self, dir_dnode_id):
+        dir_dnode = self[dir_dnode_id]
+        r = []
+        if dir_dnode is None:
+            print("[-]  Directory dnode {} unreachable".format(dir_dnode_id))
+            return None
+        zap = None
+        try:
+            zap = zap_factory(self._vdev, dir_dnode)
+        except:
+            pass
+        if zap is None:
+            print("[-]  Unable to create ZAP object")
+            return
+        keys = sorted(zap.keys())
+        for name in keys:
+            value = zap[name]
+            t = value >> 60
+            v = value & ~(15 << 60)
+            k = TYPECODES[t]
+            entry_dnode = self[v]
+            mode = 0
+            size = 0
+            try:
+                mode = entry_dnode.bonus.zp_mode
+                size = entry_dnode.bonus.zp_size
+            except:
+                pass
+            r.append(zfsnode(self, entry_dnode, k, mode, v, size, name))
+        return r
+    
     def export_file_list(self, fname, root_dir_id=None):
         print("[+]  Exporting file list")
         if root_dir_id is None:

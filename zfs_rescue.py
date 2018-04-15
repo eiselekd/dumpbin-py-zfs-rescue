@@ -35,6 +35,7 @@ from zfs.dataset import Dataset
 from zfs.objectset import ObjectSet
 from zfs.zio import RaidzDevice             # or MirrorDevice
 from zfs.zap import zap_factory
+from zfs.fuse import mountpoint
 
 from os import path
 
@@ -55,6 +56,8 @@ else:
     TXG = 108199        # 108324                           # select specific transaction or -1 for the active one
     DS_TO_ARCHIVE = [42]
 
+DOEXTRACT=False
+MOUNTPOINT="/mnt/recover"
 TEMP_DIR = "/tmp"
 OUTPUT_DIR = "rescued"
 DS_OBJECTS = []                             # objects to export
@@ -142,7 +145,6 @@ for k,v in cdzap_zap._entries.items():
         # mos[cds] points to a zap with "bonus  DSL dataset "
         datasets[cds] = mos[cds]
         
-
 print("[+] {} datasets found".format(len(datasets)))
 
 for dsid in datasets:
@@ -163,16 +165,24 @@ for dsid in datasets:
     if dsid not in DS_SKIP_TRAVERSE:
         ddss.export_file_list(path.join(OUTPUT_DIR, "ds_{}_filelist.csv".format(dsid)))
 
-for dsid in DS_TO_ARCHIVE:
-    ddss = Dataset(pool_dev, datasets[dsid], dvas=(0,1))
-    ddss.analyse()
-    ddss.analyze_tree(start=1)
-    
-    # ddss.prefetch_object_set()
-    # continue
-    if len(DS_OBJECTS) > 0:
-        for dnid, objname in DS_OBJECTS:
-            ddss.archive(path.join(OUTPUT_DIR, "ds_{}_{}.tar".format(dsid, objname)),
-                         dir_node_id=dnid, skip_objs=DS_OBJECTS_SKIP, temp_dir=TEMP_DIR)
-    else:
-        ddss.archive(path.join(OUTPUT_DIR, "ds_{}.tar".format(dsid)), skip_objs=DS_OBJECTS_SKIP, temp_dir=TEMP_DIR)
+if (not DOEXTRACT) and len(MOUNTPOINT):
+
+    for dsid in DS_TO_ARCHIVE:
+        ddss = Dataset(pool_dev, datasets[dsid], dvas=(0,1))
+        m = mountpoint(MOUNTPOINT, ddss)
+        m.mount()
+else:
+        
+    for dsid in DS_TO_ARCHIVE:
+        ddss = Dataset(pool_dev, datasets[dsid], dvas=(0,1))
+        ddss.analyse()
+        ddss.analyze_tree(start=1)
+        
+        # ddss.prefetch_object_set()
+        # continue
+        if len(DS_OBJECTS) > 0:
+            for dnid, objname in DS_OBJECTS:
+                ddss.archive(path.join(OUTPUT_DIR, "ds_{}_{}.tar".format(dsid, objname)),
+                             dir_node_id=dnid, skip_objs=DS_OBJECTS_SKIP, temp_dir=TEMP_DIR)
+        else:
+            ddss.archive(path.join(OUTPUT_DIR, "ds_{}.tar".format(dsid)), skip_objs=DS_OBJECTS_SKIP, temp_dir=TEMP_DIR)

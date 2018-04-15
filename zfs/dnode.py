@@ -206,6 +206,8 @@ class BonusSysAttr:
                 else:
                     v = None
                 setattr(self,f['name'], v);
+                n = f['name'].replace("zpl_","zp_");
+                setattr(self,n, v);
         except:
             pass
     def size(self):
