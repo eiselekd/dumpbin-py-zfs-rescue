@@ -10,4 +10,11 @@ Fork of https://github.com/hiliev/py-zfs-rescue with the following improvements:
  * bigger than 2TB disk support
  * SystemAttributes, bonus type 0x2c
  * variable sectorsize
- 
+
+This make it possible to read datappols created via i.e.
+
+     zpool create datapool -f -o ashift=12 -O atime=off -O canmount=off -O compression=lz4 -O normalization=formD raidz /dev/loop0 /dev/loop1 /dev/loop2
+     zfs create datapool/datadir
+
+
+
