@@ -10,6 +10,7 @@ Fork of https://github.com/hiliev/py-zfs-rescue with the following improvements:
  * bigger than 2TB disk support
  * SystemAttributes, bonus type 0x2c
  * variable sectorsize
+ * fuse (llfuse) interface for recovery
 
 This make it possible to read datappols created via i.e.
 
