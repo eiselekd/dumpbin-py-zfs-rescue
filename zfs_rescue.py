@@ -37,6 +37,7 @@ from zfs.zio import RaidzDevice             # or MirrorDevice
 from zfs.zap import zap_factory
 from zfs.fuse import mountpoint
 
+import os
 from os import path
 
 BLK_PROXY_ADDR = ("localhost", 24892)       # network block server
@@ -166,7 +167,9 @@ for dsid in datasets:
         ddss.export_file_list(path.join(OUTPUT_DIR, "ds_{}_filelist.csv".format(dsid)))
 
 if (not DOEXTRACT) and len(MOUNTPOINT):
-
+    if not (os.path.exists(MOUNTPOINT)):
+        os.makedirs(MOUNTPOINT)
+    
     for dsid in DS_TO_ARCHIVE:
         ddss = Dataset(pool_dev, datasets[dsid], dvas=(0,1))
         ddss.analyse(name=("dataset-%d" %(dsid)))
