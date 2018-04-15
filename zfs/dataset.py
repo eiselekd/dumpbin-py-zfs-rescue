@@ -57,10 +57,12 @@ class zfsnode():
         self.datasetid = v
         self.size = size
         self.name = name
-        pass
-    def nodeid():
+        self._directory = None
+    def nodeid(self):
         return self.datasetid
-    def stat():
+    def isdir(self):
+        return self.stattype == 4
+    def stat(self):
         return { 'st_atime' : 0 ,
                  'st_ctime' : 0,
                  'st_gid' : 1 ,
@@ -69,7 +71,10 @@ class zfsnode():
                  'st_nlink' : 0,
                  'st_size' : self.size,
                  'st_uid' : 1 }
-        
+    def readdir(self):
+        if self._directory is None:
+            self._directory = self.dataset.readdir(self.datasetid)
+        return self._directory
 
 class Dataset(ObjectSet):
 
@@ -95,7 +100,8 @@ class Dataset(ObjectSet):
 
 
             
-    def analyse(self):
+    def analyse(self,name=""):
+        self.name = name
         if self.broken:
             print("[-]  Dataset is broken")
             return
@@ -193,6 +199,10 @@ class Dataset(ObjectSet):
             if k == 'd' and depth > 0:
                 self.traverse_dir(v, depth=depth-1, dir_prefix=dir_prefix+name+'/')
 
+    def rootdir(self):
+        r = self[self._rootdir_id]
+        return zfsnode(self, r, 4, -1, self._rootdir_id, 0, "/")
+        
     def readdir(self, dir_dnode_id):
         dir_dnode = self[dir_dnode_id]
         r = []

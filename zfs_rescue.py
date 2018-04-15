@@ -167,10 +167,13 @@ for dsid in datasets:
 
 if (not DOEXTRACT) and len(MOUNTPOINT):
 
+    r = []
     for dsid in DS_TO_ARCHIVE:
         ddss = Dataset(pool_dev, datasets[dsid], dvas=(0,1))
-        m = mountpoint(MOUNTPOINT, ddss)
-        m.mount()
+        ddss.analyse(name=("dataset-%d" %(dsid)))
+        r.append(ddss)
+    m = mountpoint(MOUNTPOINT, r)
+    m.mount()
 else:
         
     for dsid in DS_TO_ARCHIVE:
