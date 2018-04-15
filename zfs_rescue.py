@@ -41,7 +41,7 @@ from os import path
 
 BLK_PROXY_ADDR = ("localhost", 24892)       # network block server
 
-testdisks=False
+testdisks=True
 if testdisks:
     INITIALDISKS = [ "/dev/loop0" ]
     BLK_INITIAL_DISK = "/dev/loop0"      # device to read the label from
@@ -167,13 +167,11 @@ for dsid in datasets:
 
 if (not DOEXTRACT) and len(MOUNTPOINT):
 
-    r = []
     for dsid in DS_TO_ARCHIVE:
         ddss = Dataset(pool_dev, datasets[dsid], dvas=(0,1))
         ddss.analyse(name=("dataset-%d" %(dsid)))
-        r.append(ddss)
-    m = mountpoint(MOUNTPOINT, r)
-    m.mount()
+        m = mountpoint(MOUNTPOINT, ddss)
+        m.mount()
 else:
         
     for dsid in DS_TO_ARCHIVE:

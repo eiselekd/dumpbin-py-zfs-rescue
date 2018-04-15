@@ -10,31 +10,20 @@ import stat
 import logging
 import errno
 import llfuse
+from os import fsencode, fsdecode
 
 from zfs.dataset import zfsnode
 
-class specnode():
-    def __init__(self, p, inode):
-        self._name = p;
-        self._inode = inode;
-    def name(self):
-        return self._name
-    def size(self):
-        return 0
-    def isdir(self):
-        return True
-    def nodeid(self):
-        return self._inode
-
-class zfsfuse(llfuse.Operations):
-    def __init__(self, datasets):
+class zfsfuse(llfuse.Operations): 
+    def __init__(self, dataset): 
         super(zfsfuse, self).__init__()
         try:
             self.log = logging.getLogger(__name__)
-            self.m = {}
-            self.datasets = datasets
-            self.dolog('[+] init for %d datasets %s' %(len(self.datasets), str([i.name for i in self.datasets])))
-            self.roots = [ self.register(dataset.rootdir()) for dataset in self.datasets ]
+            self.m = {} 
+            self.rootdir = dataset.rootdir(llfuse.ROOT_INODE)
+            self.rootdir_inode = self.rootdir.inode()
+            self._inode_map = { self.rootdir_inode : self.rootdir }
+            self.dolog('[+] init for datasets %s' %(str(dataset)))
             self.dolog('[+] rootnodeid: %s' %(llfuse.ROOT_INODE))
         except Exception as e:
             self.dolog("[-] Exception in zfsfuse init %s" %(str(e)))
@@ -44,30 +33,25 @@ class zfsfuse(llfuse.Operations):
         print(*argv)
         #self.log.debug(*argv)
         
-    def finddnode(self, i):
-        if i in self.m:
-            return self.m[i]
-        return None
-    
-    def register(self, e):
-        i = llfuse.ROOT_INODE+e.nodeid()
-        self.m[i] = e;
-        return i 
+    def findinode(self, i):
+        try:
+            val = self._inode_map[i]
+        except:
+            raise llfuse.FUSEError(errno.ENOENT)
+        return val
 
-    def _path_join(self, prefix, partial):
-        if partial.startswith("/"):
-            partial = partial[1:]
-        path = os.path.join(prefix, partial)
-        return path
+    def registerinode(self, i, e):
+        self._inode_map[i] = e
+        
 
     ###########################################
 
     def _getattr(self, e):
         stamp = int(1438467123.985654 * 1e9)
         entry = llfuse.EntryAttributes()
-        entry.st_mode = ((stat.S_IFDIR if e.isdir() else 0) | 0o755)
+        entry.st_mode = ((stat.S_IFDIR if e.isdir() else stat.S_IFREG) | 0o777)
         entry.st_size = e.size()
-        entry.st_ino = llfuse.ROOT_INODE+e.nodeid()
+        entry.st_ino = e.inode()
         entry.st_atime_ns = stamp
         entry.st_ctime_ns = stamp
         entry.st_mtime_ns = stamp
@@ -78,69 +62,40 @@ class zfsfuse(llfuse.Operations):
     def getattr(self, inode, ctx=None):
         
         self.dolog('[>] getattr for %d' %(inode))
-        if not inode == llfuse.ROOT_INODE:
-            e = self.finddnode(inode);
-            return self._getattr(e)
-            
-        entry = llfuse.EntryAttributes()
-        entry.st_ino = inode # inode 
-        entry.st_mode = stat.S_IFDIR | 0o777# it's a dir
-        entry.st_nlink = 1
-        entry.st_uid = os.getuid() # Process UID
-        entry.st_gid = os.getgid() # Process GID
-        entry.st_rdev = 0
-        entry.st_size = 0
-        entry.st_blksize = 1
-        entry.st_blocks = 1
-        entry.generation = 0
-        entry.attr_timeout = 1
-        entry.entry_timeout = 1
-        entry.st_atime_ns = 0 # Access time (ns), 1 Jan 1970
-        entry.st_ctime_ns = 0 # Change time (ns)
-        entry.st_mtime_ns = 0 # Modification time (ns)
-        return entry
+        n = self.findinode(inode)
+        return self._getattr(n)
     
-        entry = llfuse.EntryAttributes()
-        entry.st_mode = (stat.S_IFDIR | 0o755)
-        entry.st_size = 0
-        entry.st_ino = llfuse.ROOT_INODE
-        stamp = int(1438467123.985654 * 1e9)
-        entry.st_atime_ns = stamp
-        entry.st_ctime_ns = stamp
-        entry.st_mtime_ns = stamp
-        entry.st_gid = os.getgid()
-        entry.st_uid = os.getuid()
-        return entry
-
     def lookup(self, parent_inode, name, ctx=None):
+        name = fsdecode(name)
         self.dolog('[>] lookup for %d [%s]' %(parent_inode, name))
-        if parent_inode == llfuse.ROOT_INODE:
-            d = [self.finddnode(i) for i in self.roots]
-        else:
-            d = self.finddnode(parent_inode).readdir();
+        n = self.findinode(parent_inode)
+        d = n.readdir();
         r = {}
         for i in d:
             r[i.name()] = i;
         if name in r:
-            return self.register(r[name])
+            e = r[name]
+            attr = self._getattr(e)
+            self.registerinode(attr.st_ino, e)
+            return attr
+        print("Cannot find %s" %(name))
         raise llfuse.FUSEError(errno.ENOENT)
 
     def opendir(self, inode, ctx):
         self.dolog('[>] opendit for %d' %(inode))
         return inode
-
-    def spec(self, e):
-        return [specnode(".", e.nodeid()), specnode("..", e.parentnodeid())]
     
     def readdir(self, fh, off):
         self.dolog('[>] readdir for %d' %(fh))
-        if fh == llfuse.ROOT_INODE:
-            d = [self.finddnode(i) for i in self.roots]
-        else:
-            e = self.finddnode(fh)
-            d = e.readdir()
-        for v in d[off:]:
-            yield (v.name().encode(encoding='UTF-8'), self._getattr(v), 1 )
+        n = self.findinode(fh)
+        entries = []
+        for e in n.readdir():
+            attr = self._getattr(e)
+            entries.append((attr.st_ino, e.name(), attr)) 
+        for (ino, name, attr) in sorted(entries):
+            if ino <= off:
+                continue
+            yield (fsencode(name), attr, ino)
 
     def open(self, inode, flags, ctx):
         raise llfuse.FUSEError(errno.ENOENT)
@@ -152,10 +107,11 @@ class zfsfuse(llfuse.Operations):
         pass
     def releasedir(self,fd):
         pass
+    
 class mountpoint():
-    def __init__(self, mountpoint, datasets):
+    def __init__(self, mountpoint, dataset):
         self.mountpoint = mountpoint
-        self.datasets = datasets
+        self.dataset = dataset
         print("[+] mount fuse at " + mountpoint)
 
     def init_logging(self, debug=False):
@@ -175,7 +131,7 @@ class mountpoint():
     def mount(self,log=True):
         self.init_logging(log)
 
-        fs = zfsfuse(self.datasets)
+        fs = zfsfuse(self.dataset)
         fuse_options = set(llfuse.default_options)
         fuse_options.add('fsname=zfsrescue')
         fuse_options.add('debug')

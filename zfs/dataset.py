@@ -48,8 +48,26 @@ MODE_OR = 0o004
 MODE_OW = 0o002
 MODE_OX = 0o001
 
+# /* 0 */ "not specified",
+# /* 1 */ "FIFO",
+# /* 2 */ "Character Device",
+# /* 3 */ "3 (invalid)",
+# /* 4 */ "Directory",
+# /* 5 */ "5 (invalid)",
+# /* 6 */ "Block Device",
+# /* 7 */ "7 (invalid)",
+# /* 8 */ "Regular File",
+# /* 9 */ "9 (invalid)",
+# /* 10 */ "Symbolic Link",
+# /* 11 */ "11 (invalid)",
+# /* 12 */ "Socket",
+# /* 13 */ "Door",
+# /* 14 */ "Event Port",
+# /* 15 */ "15 (invalid)",
+# TYPECODES = "-pc-d-b-f-l-soe-"
+
 class zfsnode():
-    def __init__(self, dataset, dnode, k, mode, v, size, name, parentnodeid=0):
+    def __init__(self, dataset, dnode, k, mode, v, size, name, inoderoot, inode):
         self.dataset = dataset
         self.dnode = dnode
         self.stattype = k
@@ -58,17 +76,16 @@ class zfsnode():
         self._size = size
         self._name = name
         self._directory = None
-        self._parentnodeid = parentnodeid
+        self._inoderoot = inoderoot
+        self._inode = self._inoderoot + inode
     def name(self):
         return self._name
     def size(self):
         return self._size if not self.isdir() else 0
-    def nodeid(self):
-        return self.datasetid
-    def parentnodeid(self):
-        return self._parentnodeid
+    def inode(self):
+        return self._inode
     def isdir(self):
-        return self.stattype == 4
+        return self.stattype == "d"
     def stat(self):
         return { 'st_atime' : 0 ,
                  'st_ctime' : 0,
@@ -80,7 +97,7 @@ class zfsnode():
                  'st_uid' : 1 }
     def readdir(self):
         if self._directory is None:
-            self._directory = self.dataset.readdir(self.datasetid)
+            self._directory = self.dataset.readdir(self.datasetid, self._inoderoot)
         return self._directory
 
 class Dataset(ObjectSet):
@@ -206,11 +223,11 @@ class Dataset(ObjectSet):
             if k == 'd' and depth > 0:
                 self.traverse_dir(v, depth=depth-1, dir_prefix=dir_prefix+name+'/')
 
-    def rootdir(self):
+    def rootdir(self, inoderoot):
         r = self[self._rootdir_id]
-        return zfsnode(self, r, 4, -1, self._rootdir_id, 0, "/")
+        return zfsnode(self, r, 'd', -1, self._rootdir_id, 0, "/", inoderoot, 0)
         
-    def readdir(self, dir_dnode_id):
+    def readdir(self, dir_dnode_id, inoderoot):
         dir_dnode = self[dir_dnode_id]
         r = []
         if dir_dnode is None:
@@ -238,7 +255,7 @@ class Dataset(ObjectSet):
                 size = entry_dnode.bonus.zp_size
             except:
                 pass
-            r.append(zfsnode(self, entry_dnode, k, mode, v, size, name, parentnodeid=dir_dnode_id))
+            r.append(zfsnode(self, entry_dnode, k, mode, v, size, name, inoderoot, v))
         return r
     
     def export_file_list(self, fname, root_dir_id=None):
