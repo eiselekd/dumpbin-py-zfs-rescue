@@ -49,17 +49,24 @@ MODE_OW = 0o002
 MODE_OX = 0o001
 
 class zfsnode():
-    def __init__(self, dataset, dnode, k, mode, v, size, name):
+    def __init__(self, dataset, dnode, k, mode, v, size, name, parentnodeid=0):
         self.dataset = dataset
         self.dnode = dnode
         self.stattype = k
         self.mode = mode
         self.datasetid = v
-        self.size = size
-        self.name = name
+        self._size = size
+        self._name = name
         self._directory = None
+        self._parentnodeid = parentnodeid
+    def name(self):
+        return self._name
+    def size(self):
+        return self._size if not self.isdir() else 0
     def nodeid(self):
         return self.datasetid
+    def parentnodeid(self):
+        return self._parentnodeid
     def isdir(self):
         return self.stattype == 4
     def stat(self):
@@ -231,7 +238,7 @@ class Dataset(ObjectSet):
                 size = entry_dnode.bonus.zp_size
             except:
                 pass
-            r.append(zfsnode(self, entry_dnode, k, mode, v, size, name))
+            r.append(zfsnode(self, entry_dnode, k, mode, v, size, name, parentnodeid=dir_dnode_id))
         return r
     
     def export_file_list(self, fname, root_dir_id=None):

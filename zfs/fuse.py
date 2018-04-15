@@ -13,9 +13,18 @@ import llfuse
 
 from zfs.dataset import zfsnode
 
-class wrap():
-    def __init__(self, f):
-        self.fh = f
+class specnode():
+    def __init__(self, p, inode):
+        self._name = p;
+        self._inode = inode;
+    def name(self):
+        return self._name
+    def size(self):
+        return 0
+    def isdir(self):
+        return True
+    def nodeid(self):
+        return self._inode
 
 class zfsfuse(llfuse.Operations):
     def __init__(self, datasets):
@@ -26,13 +35,14 @@ class zfsfuse(llfuse.Operations):
             self.datasets = datasets
             self.dolog('[+] init for %d datasets %s' %(len(self.datasets), str([i.name for i in self.datasets])))
             self.roots = [ self.register(dataset.rootdir()) for dataset in self.datasets ]
+            self.dolog('[+] rootnodeid: %s' %(llfuse.ROOT_INODE))
         except Exception as e:
             self.dolog("[-] Exception in zfsfuse init %s" %(str(e)))
             raise(e)
 
     def dolog(self, *argv):
         print(*argv)
-        self.log.debug(*argv)
+        #self.log.debug(*argv)
         
     def finddnode(self, i):
         if i in self.m:
@@ -51,21 +61,49 @@ class zfsfuse(llfuse.Operations):
         return path
 
     ###########################################
-    
+
+    def _getattr(self, e):
+        stamp = int(1438467123.985654 * 1e9)
+        entry = llfuse.EntryAttributes()
+        entry.st_mode = ((stat.S_IFDIR if e.isdir() else 0) | 0o755)
+        entry.st_size = e.size()
+        entry.st_ino = llfuse.ROOT_INODE+e.nodeid()
+        entry.st_atime_ns = stamp
+        entry.st_ctime_ns = stamp
+        entry.st_mtime_ns = stamp
+        entry.st_gid = os.getgid()
+        entry.st_uid = os.getuid()
+        return entry
+
     def getattr(self, inode, ctx=None):
         
-        self.dolog('getattr for %d' %(inode))
-        entry = llfuse.EntryAttributes()
-        if inode == llfuse.ROOT_INODE:
-            entry.st_mode = (stat.S_IFDIR | 0o755)
-            entry.st_size = 0
-            entry.st_ino = llfuse.ROOT_INODE
-        else:
-            e = self.finddnode(parent_inode);
-            entry.st_mode = ((stat.S_IFDIR if e.isdir() else 0) | 0o755)
-            entry.st_size = e.size()
-            entry.st_ino = llfuse.ROOT_INODE+e.nodeid()
+        self.dolog('[>] getattr for %d' %(inode))
+        if not inode == llfuse.ROOT_INODE:
+            e = self.finddnode(inode);
+            return self._getattr(e)
             
+        entry = llfuse.EntryAttributes()
+        entry.st_ino = inode # inode 
+        entry.st_mode = stat.S_IFDIR | 0o777# it's a dir
+        entry.st_nlink = 1
+        entry.st_uid = os.getuid() # Process UID
+        entry.st_gid = os.getgid() # Process GID
+        entry.st_rdev = 0
+        entry.st_size = 0
+        entry.st_blksize = 1
+        entry.st_blocks = 1
+        entry.generation = 0
+        entry.attr_timeout = 1
+        entry.entry_timeout = 1
+        entry.st_atime_ns = 0 # Access time (ns), 1 Jan 1970
+        entry.st_ctime_ns = 0 # Change time (ns)
+        entry.st_mtime_ns = 0 # Modification time (ns)
+        return entry
+    
+        entry = llfuse.EntryAttributes()
+        entry.st_mode = (stat.S_IFDIR | 0o755)
+        entry.st_size = 0
+        entry.st_ino = llfuse.ROOT_INODE
         stamp = int(1438467123.985654 * 1e9)
         entry.st_atime_ns = stamp
         entry.st_ctime_ns = stamp
@@ -75,7 +113,7 @@ class zfsfuse(llfuse.Operations):
         return entry
 
     def lookup(self, parent_inode, name, ctx=None):
-        self.dolog('lookup for %d[%s]' %(parent_inode, name))
+        self.dolog('[>] lookup for %d [%s]' %(parent_inode, name))
         if parent_inode == llfuse.ROOT_INODE:
             d = [self.finddnode(i) for i in self.roots]
         else:
@@ -88,20 +126,21 @@ class zfsfuse(llfuse.Operations):
         raise llfuse.FUSEError(errno.ENOENT)
 
     def opendir(self, inode, ctx):
-        self.dolog('opendit for %d' %(inode))
-        e = self.finddnode(inode);
-        if e is None or not e.stattype == 4:
-            raise llfuse.FUSEError(errno.ENOENT)
+        self.dolog('[>] opendit for %d' %(inode))
         return inode
 
+    def spec(self, e):
+        return [specnode(".", e.nodeid()), specnode("..", e.parentnodeid())]
+    
     def readdir(self, fh, off):
-        self.dolog('readdir for %d' %(fh))
+        self.dolog('[>] readdir for %d' %(fh))
         if fh == llfuse.ROOT_INODE:
             d = [self.finddnode(i) for i in self.roots]
         else:
-            d = self.finddnode(fh).readdir()
+            e = self.finddnode(fh)
+            d = e.readdir()
         for v in d[off:]:
-            yield (v.name(), self.register(v), 1)
+            yield (v.name().encode(encoding='UTF-8'), self._getattr(v), 1 )
 
     def open(self, inode, flags, ctx):
         raise llfuse.FUSEError(errno.ENOENT)
@@ -109,6 +148,10 @@ class zfsfuse(llfuse.Operations):
     def read(self, fh, off, size):
         raise llfuse.FUSEError(errno.ENOENT)
 
+    def release(self, fd):
+        pass
+    def releasedir(self,fd):
+        pass
 class mountpoint():
     def __init__(self, mountpoint, datasets):
         self.mountpoint = mountpoint
