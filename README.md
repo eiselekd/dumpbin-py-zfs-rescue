@@ -24,6 +24,6 @@ Recuse is done via the following steps:
  * For partitins greater than 2TB split partition into 1TB chunks and suffix with index `<diskname>.0, <diskname>.1, ...`. use block_proxy json init syntax ` <vdev> : [ "<diskname>.0", "<diskname>.1",... ]`
  * edit BLK_PROXY_ADDR, INITIALDISKS, BLK_INITIAL_DISK
  * run zfs_rescue.py to determine the dataset to use and edit list variable DS_TO_ARCHIVE
- * edit MOUNTPOINT for fuse filesystem directory via which to access dataset and `rsync -avPX <MOUNTPOINT>/. <MOUNTPOINT>.bck/.``to recover, hopefully... :-)
+ * edit MOUNTPOINT for fuse filesystem directory via which to access dataset and `rsync -avPX <MOUNTPOINT>/. <MOUNTPOINT>.bck/.` to recover - hopefully... :-)
  
  
