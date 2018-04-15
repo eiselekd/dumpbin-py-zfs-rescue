@@ -71,7 +71,7 @@ class zfsnode():
     def __init__(self, dataset, dnode, k, mode, v, size, name, inoderoot, inode):
         self.dataset = dataset
         self.dnode = dnode
-        self.stattype = k
+        self._stattype = k
         self.mode = mode
         self.datasetid = v
         self._size = size
@@ -87,9 +87,11 @@ class zfsnode():
     def inode(self):
         return self._inode
     def isdir(self):
-        return self.stattype == "d"
+        return self._stattype == "d"
     def isfile(self):
-        return self.stattype == "f"
+        return self._stattype == "f"
+    def stattype(self):
+        return self._stattype
     def stat(self):
         return { 'st_atime' : 0 ,
                  'st_ctime' : 0,
@@ -105,8 +107,9 @@ class zfsnode():
         return self._directory
     
     def extract_file(self):
-        #if not self.isfile():
-        #    return
+        if not self.isfile():
+            print("[+] ------------------- type: %s ---------------" %(self._stattype))
+            return
         self._cache_file = next(tempfile._get_candidate_names())
         print("[+] temporary file %s" %(self._cache_file))
         self.dataset.extract_file(self.datasetid, self._cache_file)

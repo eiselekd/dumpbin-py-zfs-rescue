@@ -14,6 +14,16 @@ from os import fsencode, fsdecode
 
 from zfs.dataset import zfsnode
 
+map_st_mode = {
+    's' : stat.S_IFSOCK,
+    'l' : stat.S_IFLNK,
+    'f' : stat.S_IFREG,
+    'b' : stat.S_IFBLK,
+    'd' : stat.S_IFDIR,
+    'c' : stat.S_IFCHR,
+    'p' : stat.S_IFIFO
+};
+
 class zfsfuse(llfuse.Operations): 
     def __init__(self, dataset): 
         super(zfsfuse, self).__init__()
@@ -47,9 +57,16 @@ class zfsfuse(llfuse.Operations):
     ###########################################
 
     def _getattr(self, e):
+        
         stamp = int(1438467123.985654 * 1e9)
         entry = llfuse.EntryAttributes()
-        entry.st_mode = ((stat.S_IFDIR if e.isdir() else stat.S_IFREG) | 0o777)
+        a = e.stattype()
+        entry.st_mode = 0o777
+        try:
+            entry.st_mode |= map_st_mode[a]
+        except:
+            pass
+        #entry.st_mode = ((stat.S_IFDIR if e.isdir() else stat.S_IFREG) | 0o777)
         entry.st_size = e.size()
         entry.st_ino = e.inode()
         entry.st_atime_ns = stamp
