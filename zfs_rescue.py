@@ -48,7 +48,7 @@ if testdisks:
     BLK_INITIAL_DISK = "/dev/loop0"      # device to read the label from
     BLK_PROXY_ADDR = ("files:", "disks.tab")  # local device nodes
     TXG = -1                                    # select specific transaction or -1 for the active one
-    DS_TO_ARCHIVE = [259] 
+    DS_TO_ARCHIVE = [259]
 else:
     BLK_PROXY_ADDR = ("files:", "datatab.txt")  # local device nodes
     INITIALDISKS = [ "/dev/disk/by-id/ata-WDC_WD30EFRX-68EUZN0_WD-WCC4N1KPRKPX-part1", "/dev/disk/by-id/ata-WDC_WD30EFRX-68EUZN0_WD-WCC4N7ZXC1E0-part1" ]
@@ -120,7 +120,7 @@ for dva in range(3):
         print("[+]  dnode[{:>3}]={}".format(n, d))
         if d and d.type == 16:
             datasets[n] = d
-            
+
             if d.bonus.ds_num_children > 0:
                 ds_dir_obj = d.bonus.ds_dir_obj
                 dir_obj = mos[ds_dir_obj]
@@ -128,7 +128,7 @@ for dva in range(3):
                 dir_obj_zap = zap_factory(pool_dev, child_dir_zap)
                 print (str(dir_obj_zap))
 
-            
+
 
 print("[+] {} root dataset")
 rds_z = mos[1]
@@ -139,13 +139,13 @@ cdzap_id = rdir.bonus.dd_child_dir_zapobj
 cdzap_z = mos[cdzap_id]
 cdzap_zap = zap_factory(pool_dev, cdzap_z)
 for k,v in cdzap_zap._entries.items():
-    if not k[0:1] == '$': 
+    if not k[0:1] == '$':
         child = mos[v]
         cds = child.bonus.dd_head_dataset_obj
         print("child %s with dataset %d" %(k,cds))
         # mos[cds] points to a zap with "bonus  DSL dataset "
         datasets[cds] = mos[cds]
-        
+
 print("[+] {} datasets found".format(len(datasets)))
 
 for dsid in datasets:
@@ -155,10 +155,10 @@ for dsid in datasets:
     print("[+]  creation timestamp {}".format(ds_dnode.bonus.ds_creation_time))
     print("[+]  creation txg {}".format(ds_dnode.bonus.ds_creation_txg))
     print("[+]  {} uncompressed bytes, {} compressed bytes".format(ds_dnode.bonus.ds_uncompressed_bytes, ds_dnode.bonus.ds_compressed_bytes))
-    print(" Hirarchical info:") 
+    print(" Hirarchical info:")
     print("[ ] ds_num_children: %d" %(ds_dnode.bonus.ds_num_children))
-        
-        
+
+
     if FAST_ANALYSIS:
         continue
     ddss = Dataset(pool_dev, ds_dnode)
@@ -168,20 +168,23 @@ for dsid in datasets:
 
 if (not DOEXTRACT) and len(MOUNTPOINT):
     if not (os.path.exists(MOUNTPOINT)):
-        os.makedirs(MOUNTPOINT)
-    
+        try:
+            os.makedirs(MOUNTPOINT)
+        except:
+            pass
+
     for dsid in DS_TO_ARCHIVE:
         ddss = Dataset(pool_dev, datasets[dsid], dvas=(0,1))
         ddss.analyse(name=("dataset-%d" %(dsid)))
         m = mountpoint(MOUNTPOINT, ddss)
         m.mount()
 else:
-        
+
     for dsid in DS_TO_ARCHIVE:
         ddss = Dataset(pool_dev, datasets[dsid], dvas=(0,1))
         ddss.analyse()
         ddss.analyze_tree(start=1)
-        
+
         # ddss.prefetch_object_set()
         # continue
         if len(DS_OBJECTS) > 0:

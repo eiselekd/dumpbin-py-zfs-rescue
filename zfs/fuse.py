@@ -24,8 +24,8 @@ map_st_mode = {
     'p' : stat.S_IFIFO
 };
 
-class zfsfuse(llfuse.Operations): 
-    def __init__(self, dataset): 
+class zfsfuse(llfuse.Operations):
+    def __init__(self, dataset):
         super(zfsfuse, self).__init__()
         try:
             self.log = logging.getLogger(__name__)
@@ -42,7 +42,7 @@ class zfsfuse(llfuse.Operations):
     def dolog(self, *argv):
         print(*argv)
         #self.log.debug(*argv)
-        
+
     def findinode(self, i):
         try:
             val = self._inode_map[i]
@@ -52,13 +52,12 @@ class zfsfuse(llfuse.Operations):
 
     def registerinode(self, i, e):
         self._inode_map[i] = e
-        
+
 
     ###########################################
 
     def _getattr(self, e):
-        
-        stamp = int(1438467123.985654 * 1e9)
+
         entry = llfuse.EntryAttributes()
         a = e.stattype()
         entry.st_mode = 0o777
@@ -69,19 +68,19 @@ class zfsfuse(llfuse.Operations):
         #entry.st_mode = ((stat.S_IFDIR if e.isdir() else stat.S_IFREG) | 0o777)
         entry.st_size = e.size()
         entry.st_ino = e.inode()
-        entry.st_atime_ns = stamp
-        entry.st_ctime_ns = stamp
-        entry.st_mtime_ns = stamp
+        entry.st_atime_ns = e.atime() * 1000*1000*1000
+        entry.st_ctime_ns = e.ctime() * 1000*1000*1000
+        entry.st_mtime_ns = e.mtime() * 1000*1000*1000
         entry.st_gid = os.getgid()
         entry.st_uid = os.getuid()
         return entry
 
     def getattr(self, inode, ctx=None):
-        
+
         self.dolog('[>] getattr for %d' %(inode))
         n = self.findinode(inode)
         return self._getattr(n)
-    
+
     def lookup(self, parent_inode, name, ctx=None):
         name = fsdecode(name)
         self.dolog('[>] lookup for %d [%s]' %(parent_inode, name))
@@ -101,14 +100,14 @@ class zfsfuse(llfuse.Operations):
     def opendir(self, inode, ctx):
         self.dolog('[>] opendit for %d' %(inode))
         return inode
-    
+
     def readdir(self, fh, off):
         self.dolog('[>] readdir for %d' %(fh))
         n = self.findinode(fh)
         entries = []
         for e in n.readdir():
             attr = self._getattr(e)
-            entries.append((attr.st_ino, e.name(), attr)) 
+            entries.append((attr.st_ino, e.name(), attr))
         for (ino, name, attr) in sorted(entries):
             if ino <= off:
                 continue
@@ -117,21 +116,28 @@ class zfsfuse(llfuse.Operations):
     def open(self, inode, flags, ctx):
         n = self.findinode(inode)
         n.extract_file()
-        self.dolog('[vvv] open for %d: %s' %(inode, n._cache_file))
+        self.dolog('[vvv] open dnode-%d: "%s":%d-bytes inode-%d(tmp:%s)' %(n.dnodeid(), n.abspath(), n.size(), inode, n._cache_file))
         return inode
 
     def read(self, fh, off, size):
         self.dolog('[+++] read for %d : %d-%d' %(fh, off, size))
         n = self.findinode(fh)
-        return n.read(fh, off, size);
-        
+        return n.read(off, size);
+
+    def readlink(self, inode, ctx):
+        n = self.findinode(inode)
+        b = n.readlink()
+        self.dolog('[+++] readlink for %d -> %s' %(inode,fsencode(b)))
+        return fsencode(b)
+
     def release(self, fd):
         self.dolog('[^^^] release for %d' %(fd))
         n = self.findinode(fd)
         n.release_file()
+
     def releasedir(self,fd):
         pass
-    
+
 class mountpoint():
     def __init__(self, mountpoint, dataset):
         self.mountpoint = mountpoint
@@ -151,7 +157,7 @@ class mountpoint():
             handler.setLevel(logging.INFO)
             root_logger.setLevel(logging.INFO)
         root_logger.addHandler(handler)
-    
+
     def mount(self,log=True):
         self.init_logging(log)
 
@@ -167,4 +173,3 @@ class mountpoint():
             llfuse.close(unmount=False)
             raise e
         llfuse.close()
-

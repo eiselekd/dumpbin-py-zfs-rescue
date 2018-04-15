@@ -32,12 +32,14 @@ from zfs.zap import zap_factory, TYPECODES, safe_decode_string
 from zfs.blocktree import BlockTree
 from zfs.sa import SystemAttr
 from zfs.fileobj import FileObj
+from zfs.zio import dumppacket
 
 import csv
 import time
 import tarfile
 import os
 import tempfile
+import datetime
 
 MODE_UR = 0o400
 MODE_UW = 0o200
@@ -68,7 +70,7 @@ MODE_OX = 0o001
 # TYPECODES = "-pc-d-b-f-l-soe-"
 
 class zfsnode():
-    def __init__(self, dataset, dnode, k, mode, v, size, name, inoderoot, inode):
+    def __init__(self, dataset, dnode, k, mode, v, size, name, inoderoot, inode, abspath):
         self.dataset = dataset
         self.dnode = dnode
         self._stattype = k
@@ -80,16 +82,52 @@ class zfsnode():
         self._inoderoot = inoderoot
         self._inode = self._inoderoot + inode
         self._cache_file = None
+        self._abspath = abspath
     def name(self):
         return self._name
     def size(self):
         return self._size if not self.isdir() else 0
     def inode(self):
         return self._inode
+    def dnodeid(self):
+        return self.datasetid
     def isdir(self):
         return self._stattype == "d"
     def isfile(self):
         return self._stattype == "f"
+    def abspath(self):
+        return self._abspath
+
+    def mtime(self):
+        mode = None
+        try:
+            mode = self.dnode.bonus.zp_mtime[0]
+        except:
+            pass
+        if mode is None:
+            mode = datetime.datetime.now().timestamp()
+            #print("----------------- mtime:" + datetime.datetime.fromtimestamp(mode).strftime('%Y-%m-%d %H:%M:%S'))
+        return mode
+    def atime(self):
+        mode = None
+        try:
+            mode = self.dnode.bonus.zp_atime[0]
+            #print("----------------- atime:" + datetime.datetime.fromtimestamp(mode).strftime('%Y-%m-%d %H:%M:%S'))
+        except:
+            pass
+        if mode is None:
+            mode = datetime.datetime.now().timestamp()
+        return mode
+    def ctime(self):
+        mode = None
+        try:
+            mode = self.dnode.bonus.zp_ctime[0]
+            #print("----------------- ctime:" + datetime.datetime.fromtimestamp(mode).strftime('%Y-%m-%d %H:%M:%S'))
+        except:
+            pass
+        if mode is None:
+            mode = datetime.datetime.now().timestamp()
+        return mode
     def stattype(self):
         return self._stattype
     def stat(self):
@@ -103,9 +141,21 @@ class zfsnode():
                  'st_uid' : 1 }
     def readdir(self):
         if self._directory is None:
-            self._directory = self.dataset.readdir(self.datasetid, self._inoderoot)
+            self._directory = self.dataset.readdir(self.datasetid, self._inoderoot, self._abspath)
         return self._directory
-    
+    def readlink(self):
+        file_info = self.dnode.bonus
+        if file_info.zp_size > len(file_info.zp_inline_content):
+            dumppacket(file_info.zp_inline_content)
+
+            #linkf = FileObj(self.dataset._vdev, self.dnode)
+            #link_target = linkf.read(file_info.zp_size)
+            #if link_target is None or len(link_target) < file_info.zp_size:
+
+            print("---------readlink sz: %d-------" %(file_info.zp_size))
+            return b'..'
+        else:
+            return file_info.file_info.zp_inline_content[:file_info.zp_size]
     def extract_file(self):
         if not self.isfile():
             print("[+] ------------------- type: %s ---------------" %(self._stattype))
@@ -113,15 +163,15 @@ class zfsnode():
         self._cache_file = next(tempfile._get_candidate_names())
         print("[+] temporary file %s" %(self._cache_file))
         self.dataset.extract_file(self.datasetid, self._cache_file)
-        
-    def read(self, fh, off, size):
+
+    def read(self, off, size):
         with open(self._cache_file, 'rb') as f:
             f.seek(off)
             return f.read(size)
-    
+
     def release_file(self):
         if not self._cache_file is None:
-           os.unlink(self._cache_file) 
+           os.unlink(self._cache_file)
         pass
 
 class Dataset(ObjectSet):
@@ -133,7 +183,7 @@ class Dataset(ObjectSet):
     def analyze_tree(self,start=1):
         self.traverse_dir(self._rootdir_id,depth=3)
         return
-    
+
         for n in range(start,self.max_obj_id): #range(self.max_obj_id):
             try:
                 d = self[n]
@@ -147,7 +197,7 @@ class Dataset(ObjectSet):
             print("[+]  dnode[{:>2}]={}".format(n, d))
 
 
-            
+
     def analyse(self,name=""):
         self.name = name
         if self.broken:
@@ -167,12 +217,12 @@ class Dataset(ObjectSet):
             self._rootdir_id = z["ROOT"]
             if self._rootdir_id is None:
                 z.debug()
-            
+
             # try load System Attribute Layout and registry:
             try:
                 self._sa = SystemAttr(self._vdev, self, z["SA_ATTRS"]);
-            except Exception as e: 
-                print("[-] Unable to parse System Attribute tables: %s" %(str(e)))   
+            except Exception as e:
+                print("[-] Unable to parse System Attribute tables: %s" %(str(e)))
 
         if self._rootdir_id is None:
             print("[-]  Root directory ID is not in master node")
@@ -249,9 +299,9 @@ class Dataset(ObjectSet):
 
     def rootdir(self, inoderoot):
         r = self[self._rootdir_id]
-        return zfsnode(self, r, 'd', -1, self._rootdir_id, 0, "/", inoderoot, 0)
-        
-    def readdir(self, dir_dnode_id, inoderoot):
+        return zfsnode(self, r, 'd', -1, self._rootdir_id, 0, "/", inoderoot, 0, "")
+
+    def readdir(self, dir_dnode_id, inoderoot, relpath):
         dir_dnode = self[dir_dnode_id]
         r = []
         if dir_dnode is None:
@@ -275,13 +325,13 @@ class Dataset(ObjectSet):
             mode = 0
             size = 0
             try:
-                mode = entry_dnode.bonus.zp_mode
                 size = entry_dnode.bonus.zp_size
+                mode = entry_dnode.bonus.zp_mode
             except:
                 pass
-            r.append(zfsnode(self, entry_dnode, k, mode, v, size, name, inoderoot, v))
+            r.append(zfsnode(self, entry_dnode, k, mode, v, size, name, inoderoot, v, relpath + "/" + name))
         return r
-    
+
     def export_file_list(self, fname, root_dir_id=None):
         print("[+]  Exporting file list")
         if root_dir_id is None:
@@ -393,12 +443,12 @@ class Dataset(ObjectSet):
                     else:
                         # Link target is inline in the bonus data
                         tar_info.linkname = safe_decode_string(file_info.zp_inline_content[:file_info.zp_size])
-                
+
                 #tar_info.mtime = file_info.zp_mtime
                 #tar_info.mode = file_info.zp_mode  # & 0x1ff
                 #tar_info.uid = file_info.zp_uid
                 #tar_info.gid = file_info.zp_gid
-                
+
                 # print("[+]  Archiving {} bytes from {}".format(tar_info.size, tar_info.name))
                 # f = FileObj(self._vdev, entry_dnode) if k == 'f' else None
                 try:

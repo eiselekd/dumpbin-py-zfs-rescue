@@ -199,7 +199,10 @@ class BonusSysAttr:
                 l = f['len']
                 b = data[ptr:ptr+l]
                 ptr += l
-                if (l == 8):
+                if (l == 16):
+                    (v0,v1) = struct.unpack("=QQ",b)
+                    v = [v0,v1];
+                elif (l == 8):
                     v, = struct.unpack("=Q",b)
                 elif (l == 4):
                     v, = struct.unpack("=I",b)
@@ -208,11 +211,15 @@ class BonusSysAttr:
                 setattr(self,f['name'], v);
                 n = f['name'].replace("zpl_","zp_");
                 setattr(self,n, v);
+            self.zp_inline_content = None
+            ZFS_OLD_ZNODE_PHYS_SIZE=0x108
+            #if (len(data) > ZFS_OLD_ZNODE_PHYS_SIZE):
+            self.zp_inline_content = data[ptr:]
         except:
             pass
     def size(self):
         return self.zpl_size
-        
+
     def __str__(self):
         pass
 
@@ -285,7 +292,7 @@ class DNode:
             print("[+] DSL dataset: %s (DSL directory: %d)" %(str(self._bonus), self._bonus.ds_dir_obj))
         elif self._bonuslen and self._bonustype == 17:
             self._bonus = BonusZnode(bonus_data)
-        elif self._bonuslen and self._bonustype == 0x2c:            
+        elif self._bonuslen and self._bonustype == 0x2c:
             self._bonus = BonusSysAttr(self._objset, bonus_data)
         else:
             self._bonus = bonus_data
@@ -302,7 +309,7 @@ class DNode:
     def bonus(self):
         return self._bonus
 
-    @property 
+    @property
     def type(self):
         return self._type
 
