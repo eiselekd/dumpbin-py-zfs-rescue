@@ -188,7 +188,26 @@ class Dataset(ObjectSet):
                 #break
             print("[+]  dnode[{:>2}]={}".format(n, d))
 
-
+    def analyze_switchsearch(self):
+        print("------------- switch analyze -----------")
+        a = self[24236154] 
+        r = d = self.readdir(24236154, 0, "")
+        for i in r:
+            print(" > %s" %(i.name()))
+        return 
+            
+            
+        for n in range(24236154,25200000):
+            e = self[n]
+            if (not (e is None)) and e._type == 20:
+                print("ddd8> %10d:%s "%(n,str(e)))
+                r = d = self.readdir(n, 0, "")
+                l = {}
+                for i in r:
+                    l[i.name()] = i
+                    print(" > %s" %(i.name()))
+                    if i.name() == "switchbox_gen.py":
+                        print (" switchbox_gen.py << parent dir %d" %(n))
 
     def analyse(self,name=""):
         self.name = name
@@ -294,6 +313,7 @@ class Dataset(ObjectSet):
         return zfsnode(self, r, 'd', -1, self._rootdir_id, 0, "/", inoderoot, 0, "")
 
     def readdir(self, dir_dnode_id, inoderoot, relpath):
+        print("r> %d" %(dir_dnode_id))
         dir_dnode = self[dir_dnode_id]
         r = []
         if dir_dnode is None:
@@ -306,7 +326,7 @@ class Dataset(ObjectSet):
             pass
         if zap is None:
             print("[-]  Unable to create ZAP object")
-            return
+            return []
         keys = sorted(zap.keys())
         for name in keys:
             value = zap[name]
@@ -314,6 +334,9 @@ class Dataset(ObjectSet):
             v = value & ~(15 << 60)
             k = TYPECODES[t]
             entry_dnode = self[v]
+            if k == 'd' and not entry_dnode._type == 20:
+                print("Mismatch")
+            print("> %24s: %s : %d : %s" %(name, k, v, str(entry_dnode)))
             mode = 0
             size = 0
             try:

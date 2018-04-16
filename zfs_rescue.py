@@ -42,7 +42,8 @@ from os import path
 
 BLK_PROXY_ADDR = ("localhost", 24892)       # network block server
 
-testdisks=True
+SWITCHANALYZE=True
+testdisks=False 
 if testdisks:
     INITIALDISKS = [ "/dev/loop0" ]
     BLK_INITIAL_DISK = "/dev/loop0"      # device to read the label from
@@ -52,10 +53,22 @@ if testdisks:
 else:
     BLK_PROXY_ADDR = ("files:", "datatab.txt")  # local device nodes
     INITIALDISKS = [ "/dev/disk/by-id/ata-WDC_WD30EFRX-68EUZN0_WD-WCC4N1KPRKPX-part1", "/dev/disk/by-id/ata-WDC_WD30EFRX-68EUZN0_WD-WCC4N7ZXC1E0-part1" ]
-    #BLK_INITIAL_DISK = "/dev/disk/by-id/ata-WDC_WD30EFRX-68EUZN0_WD-WCC4N7ZXC1E0-part1"
-    BLK_INITIAL_DISK = "/dev/disk/by-id/ata-WDC_WD30EFRX-68EUZN0_WD-WCC4N1KPRKPX-part1"      # device to read the label from
-    TXG = 108199        # 108324                           # select specific transaction or -1 for the active one
+    BLK_INITIAL_DISK = "/dev/disk/by-id/ata-WDC_WD30EFRX-68EUZN0_WD-WCC4N7ZXC1E0-part1"
+    #BLK_INITIAL_DISK = "/dev/disk/by-id/ata-WDC_WD30EFRX-68EUZN0_WD-WCC4N1KPRKPX-part1"      # device to read the label from
+    TXG = 108199 #108199        # 108324                           # select specific transaction or -1 for the active one
     DS_TO_ARCHIVE = [42]
+    
+    #TXG = 108193  #ok
+    #TXG = 108325
+    #TXG = 108199 #ok
+    #TXG = 108331
+    #TXG = 108173 #ok
+    #TXG = 108337
+    #TXG = 108307
+    #TXG = 108313
+    #TXG = 108219
+    #TXG = 108319
+
 
 DOEXTRACT=False
 MOUNTPOINT="/mnt/recover"
@@ -165,6 +178,15 @@ for dsid in datasets:
     ddss.analyse()
     if dsid not in DS_SKIP_TRAVERSE:
         ddss.export_file_list(path.join(OUTPUT_DIR, "ds_{}_filelist.csv".format(dsid)))
+
+
+
+if SWITCHANALYZE:
+    # search switch:
+    for dsid in DS_TO_ARCHIVE:
+        ddss = Dataset(pool_dev, datasets[dsid], dvas=(0,1))
+        ddss.analyze_switchsearch()
+        #exit()
 
 if (not DOEXTRACT) and len(MOUNTPOINT):
     if not (os.path.exists(MOUNTPOINT)):

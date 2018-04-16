@@ -85,7 +85,12 @@ class zfsfuse(llfuse.Operations):
         name = fsdecode(name)
         self.dolog('[>] lookup for %d [%s]' %(parent_inode, name))
         n = self.findinode(parent_inode)
+        dirmode = n.stattype()
+        if not (dirmode == 'd'):
+            print("Wrong dir")
         d = n.readdir();
+        if d is None:
+            raise llfuse.FUSEError(errno.ENOENT)
         r = {}
         for i in d:
             r[i.name()] = i;
@@ -98,7 +103,7 @@ class zfsfuse(llfuse.Operations):
         raise llfuse.FUSEError(errno.ENOENT)
 
     def opendir(self, inode, ctx):
-        self.dolog('[>] opendit for %d' %(inode))
+        self.dolog('[>] opendir for %d' %(inode))
         return inode
 
     def readdir(self, fh, off):

@@ -1,0 +1,41 @@
+
+* switchbox_repo
+ switchbox_repo: d : 24236154   : writing 
+  
+ search for dir in  24200000 - 25200000 with
+ switchbox_repo/switchbox_gen.py zap
+
+
+ switchbox_repo.tar.bz2: f : 24240258
+
+
+* result:
+
+ switchbox_gen.py << parent dir 24236154
+ switchbox_gen.py << parent dir 24760442
+
+
+* working :
+
+------------- switch analyze -----------
+[t] [0, 0, 0, 46, 29, 3]
+[>>] read: <[L5 DMU dnode] 4000L/1000P DVA[0]=<0:54702956000:2000> DVA[1]=<0:23fff74000:2000> DVA[2]=<0:0:0> birth=104990 fletcher4 lz4 LE contiguous fill=7460272>
+[>>] read: <[L4 DMU dnode] 4000L/1000P DVA[0]=<0:54702954000:2000> DVA[1]=<0:23fff72000:2000> DVA[2]=<0:0:0> birth=104990 fletcher4 lz4 LE contiguous fill=7460272>
+[>>] read: <[L3 DMU dnode] 4000L/1000P DVA[0]=<0:54702952000:2000> DVA[1]=<0:23fff70000:2000> DVA[2]=<0:0:0> birth=104990 fletcher4 lz4 LE contiguous fill=7460272>
+[>>] read: <[L2 DMU dnode] 4000L/1000P DVA[0]=<0:44040498000:2000> DVA[1]=<0:5d000e6a000:2000> DVA[2]=<0:0:0> birth=104491 fletcher4 lz4 LE contiguous fill=133363>
+[>>] read: <[L1 DMU dnode] 4000L/1000P DVA[0]=<0:38000d4e000:2000> DVA[1]=<0:510001d8000:2000> DVA[2]=<0:0:0> birth=94993 fletcher4 lz4 LE contiguous fill=1435>
+[>>] read: <[L0 DMU dnode] 4000L/1000P DVA[0]=<0:38000576000:2000> DVA[1]=<0:5100011e000:2000> DVA[2]=<0:0:0> birth=94992 fletcher4 lz4 LE contiguous fill=32>
+r> 24236154
+[>>] read: <[L0 ZFS directory] 1200L/1000P DVA[0]=<0:380004d0000:2000> DVA[1]=<0:5100010e000:2000> DVA[2]=<0:0:0> birth=94992 fletcher4 lz4 LE contiguous fill=1>
+
+
+* non working:
+
+[t] [0, 0, 0, 46, 29, 3]
+[>>] read: <[L0 DMU dnode] 4000L/1000P DVA[0]=<0:250a15d8000:2000> DVA[1]=<0:3b04b134000:2000> DVA[2]=<0:0:0> birth=30651 fletcher4 lz4 LE contiguous fill=32>
+Mismatch
+>           switchbox_repo: d : 24236154 : [ZFS plain file] 1B 1L/16384 blkptr[0]=<[L0 ZFS plain file] ba00L/2000P DVA[0]=<0:250a0d4c000:4000> DVA[1]=<0:0:0> DVA[2]=<0:0:0> birth=30651 fletcher4 lz4 LE contiguous fill=1> bonus[168]
+[t] [0, 0, 0, 46, 30, 4]
+[>>] read: <[L0 DMU dnode] 4000L/1000P DVA[0]=<0:3a2f1cf4000:2000> DVA[1]=<0:5300263a000:2000> DVA[2]=<0:0:0> birth=104407 fletcher4 lz4 LE contiguous fill=32>
+>
+

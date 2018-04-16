@@ -169,8 +169,8 @@ class RaidzDevice(GenericDevice):
             return None
 
         (cols, firstdatacol, skipstart) = self._map_alloc(offset, psize, self._ashift)
-        if (skipstart):
-            print(",")
+        #if (skipstart):
+        #    print(",")
         
         col_data = []
         blockv = []
