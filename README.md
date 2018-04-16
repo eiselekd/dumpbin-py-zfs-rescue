@@ -18,7 +18,7 @@ This make it possible to read datapools created via i.e.
      zfs create datapool/datadir
 
 
-Recuse is done via the following steps:
+Rescue is done via the following steps:
  * dump partitions of pool via dd 
  * use `zdb -l -u <disk>` and determine the uberblock to use and edit variable TXG in zfs_rescue.py 
  * For partitins greater than 2TB split partition into 1TB chunks and suffix with index `<diskname>.0, <diskname>.1, ...`. use block_proxy json init syntax ` <vdev> : [ "<diskname>.0", "<diskname>.1",... ]`
