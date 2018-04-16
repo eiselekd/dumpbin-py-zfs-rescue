@@ -127,6 +127,8 @@ class zfsfuse(llfuse.Operations):
     def readlink(self, inode, ctx):
         n = self.findinode(inode)
         b = n.readlink()
+        if b is None:
+            raise llfuse.FUSEError(errno.ENOENT)
         self.dolog('[+++] readlink for %d -> %s' %(inode,fsencode(b)))
         return fsencode(b)
 

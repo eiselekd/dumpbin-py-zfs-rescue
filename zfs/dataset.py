@@ -144,21 +144,10 @@ class zfsnode():
             self._directory = self.dataset.readdir(self.datasetid, self._inoderoot, self._abspath)
         return self._directory
     def readlink(self):
-        file_info = self.dnode.bonus
-        if file_info.zp_size > len(file_info.zp_inline_content):
-            dumppacket(file_info.zp_inline_content)
-            
-            #0000: 03 00 00 00 00 00 00 00 00 00 00 10 bf 01 1e 00 00 00 40 20 af 00 12 00 00 00 00 40 af 00 12 00 ..................@........@....
-            #0020: 61 2f 61 2d 74 6f 2d 6e 6f 2d 64 65 76                                                          a/a-to-no-dev                   
-            
-            #linkf = FileObj(self.dataset._vdev, self.dnode)
-            #link_target = linkf.read(file_info.zp_size)
-            #if link_target is None or len(link_target) < file_info.zp_size:
-
-            print("---------readlink sz: %d-------" %(file_info.zp_size))
-            return b'..'
-        else:
-            return file_info.file_info.zp_inline_content[:file_info.zp_size]
+        try:
+            return safe_decode_string(self.dnode.bonus.zp_symlink)
+        except:
+            return None
     def extract_file(self):
         if not self.isfile():
             print("[+] ------------------- type: %s ---------------" %(self._stattype))

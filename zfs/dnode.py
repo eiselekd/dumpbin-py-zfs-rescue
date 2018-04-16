@@ -31,6 +31,7 @@ import struct
 
 from zfs.blockptr import BlockPtr, fletcher4
 from zfs.obj_desc import DMU_TYPE_DESC
+from zfs.zio import dumppacket
 
 BLKPTR_OFFSET = 64
 
@@ -189,19 +190,28 @@ class BonusZnode:
             self.zp_uid, self.zp_gid
         )
 
+
 class BonusSysAttr:
     def __init__(self, objset, data):
         if objset is None:
             return;
         try:
+            SA_MAGIC=0x2F505A
             (magic,layoutid,hdrsz,l) = struct.unpack("=IBBH",data[0:8])
-            hdrsz *= 8
-            
-            ptr = 8 #skip sa_hdr_phys_t
+            if not (magic == SA_MAGIC):
+                print("[-] Error: SA_MAGIC wrong")
+            hdrsz *= 2
+            if layoutid == 3:
+                print("Symlink")
+            lenidx = 0
+            if (hdrsz < 8):
+                hdrsz = 8
+            ptr = hdrsz
+            #ptr = 8 #skip sa_hdr_phys_t
             for f in objset._sa._lay[str(layoutid)]:
                 l = f['len']
                 b = data[ptr:ptr+l]
-                ptr += l
+                v = None
                 if (l == 16):
                     (v0,v1) = struct.unpack("=QQ",b)
                     v = [v0,v1];
@@ -209,13 +219,21 @@ class BonusSysAttr:
                     v, = struct.unpack("=Q",b)
                 elif (l == 4):
                     v, = struct.unpack("=I",b)
-                else:
-                    v = None
+                elif (l == 0):
+                    l, = struct.unpack("=H",data[6+lenidx*2:6+lenidx*2+2])
+                    lenidx += 1
+                    if (f['name'] == "zpl_dacl_aces"):
+                        pass
+                    elif (f['name'] == "zpl_symlink"):
+                        v = data[ptr:ptr+l]
+                        #ptr = len(data)
+                ptr += l
                 setattr(self,f['name'], v);
                 n = f['name'].replace("zpl_","zp_");
                 setattr(self,n, v);
+            
             self.zp_inline_content = None
-            ZFS_OLD_ZNODE_PHYS_SIZE=0x108
+            #ZFS_OLD_ZNODE_PHYS_SIZE=0x108
             #if (len(data) > ZFS_OLD_ZNODE_PHYS_SIZE):
             self.zp_inline_content = data[ptr:]
         except:
