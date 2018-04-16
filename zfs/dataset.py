@@ -147,7 +147,10 @@ class zfsnode():
         file_info = self.dnode.bonus
         if file_info.zp_size > len(file_info.zp_inline_content):
             dumppacket(file_info.zp_inline_content)
-
+            
+            #0000: 03 00 00 00 00 00 00 00 00 00 00 10 bf 01 1e 00 00 00 40 20 af 00 12 00 00 00 00 40 af 00 12 00 ..................@........@....
+            #0020: 61 2f 61 2d 74 6f 2d 6e 6f 2d 64 65 76                                                          a/a-to-no-dev                   
+            
             #linkf = FileObj(self.dataset._vdev, self.dnode)
             #link_target = linkf.read(file_info.zp_size)
             #if link_target is None or len(link_target) < file_info.zp_size:

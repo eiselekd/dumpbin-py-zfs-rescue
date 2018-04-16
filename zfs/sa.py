@@ -46,7 +46,6 @@ class SystemAttr:
         self._r_zap = zap_factory(vdev, registry)
         self._l_zap = zap_factory(vdev, layout)
         self._reg = {}
-        self._lay = []
         for k in self._r_zap.keys():
             v = self._r_zap[k]
             # 64      56      48      40      32      24      16      8       0                                                                                                    
@@ -56,10 +55,13 @@ class SystemAttr:
             n = v & 0xffff
             l = v >> 24 & 0xffff
             self._reg[n] = {'len': l, 'name': k.lower()}
-        b = self._l_zap['2']
-        for i in range(len(b)//2):
-            idx, = struct.unpack(">H",b[i*2:(i+1)*2])
-            self._lay.append(self._reg[idx])
+        self._lay = {}
+        for k in self._l_zap.keys():
+            b = self._l_zap[k]
+            self._lay[k] = [] 
+            for i in range(len(b)//2):
+                idx, = struct.unpack(">H",b[i*2:(i+1)*2])
+                self._lay[k].append(self._reg[idx])
             
     def parse(self,zap):
         pass

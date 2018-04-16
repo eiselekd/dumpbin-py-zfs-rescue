@@ -194,8 +194,11 @@ class BonusSysAttr:
         if objset is None:
             return;
         try:
+            (magic,layoutid,hdrsz,l) = struct.unpack("=IBBH",data[0:8])
+            hdrsz *= 8
+            
             ptr = 8 #skip sa_hdr_phys_t
-            for f in objset._sa._lay:
+            for f in objset._sa._lay[str(layoutid)]:
                 l = f['len']
                 b = data[ptr:ptr+l]
                 ptr += l
