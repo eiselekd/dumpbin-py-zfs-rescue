@@ -198,6 +198,7 @@ if (not DOEXTRACT) and len(MOUNTPOINT):
     for dsid in DS_TO_ARCHIVE:
         ddss = Dataset(pool_dev, datasets[dsid], dvas=(0,1))
         ddss.analyse(name=("dataset-%d" %(dsid)))
+        #ddss.analyze_switchsearch()
         m = mountpoint(MOUNTPOINT, ddss)
         m.mount()
 else:

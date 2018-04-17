@@ -29,6 +29,17 @@
 
 from zfs.blockptr import BlockPtrArray
 
+class color:
+       PURPLE = '\033[95m'
+       CYAN = '\033[96m'
+       DARKCYAN = '\033[36m'
+       BLUE = '\033[94m'
+       GREEN = '\033[92m'
+       YELLOW = '\033[93m'
+       RED = '\033[91m'
+       BOLD = '\033[1m'
+       UNDERLINE = '\033[4m'
+       END = '\033[0m'
 
 class BlockTree:
 
@@ -36,13 +47,13 @@ class BlockTree:
         self._levels = levels
         self._vdev = vdev
         print("[+] Creating block tree from", root_bptr)
+        self._cache = {}
         if levels == 1:
             self._root = root_bptr
         else:
             self._root = self._load_from_bptr(root_bptr)
             self._blocks_per_level = len(self._root)
             print("[+]  {} blocks per level".format(self._blocks_per_level))
-            self._cache = {}
 
     def _load_from_bptr(self, bptr):
         block_data = None
@@ -69,15 +80,13 @@ class BlockTree:
         if self._levels == 1:
             return self._root if item == 0 else None
         indices = self._get_level_indices(item)
-        print("[t] "+str(indices))
         bpa = self._root
+        _cache = self._cache
         for (l, i) in enumerate(indices[:-1]):
-            level_cache = self._cache.get(l)
-            if level_cache is None:
-                level_cache = {}
-                self._cache[l] = level_cache
-            if i in level_cache:
-                next_bpa = level_cache[i]
+            if not i in _cache:
+                _cache[i] = { 'b' : None, 'n' : {} } # generate a graph
+            if not _cache[i]['b'] is None:
+                next_bpa = _cache[i]['b']
             else:
                 b = bpa[i]
                 bpa_data = None
@@ -90,8 +99,17 @@ class BlockTree:
                     next_bpa = BlockPtrArray(bpa_data)
                 else:
                     print("[-] Block tree is broken at", b)
-                level_cache[i] = next_bpa
+                _cache[i]['b'] = next_bpa
             bpa = next_bpa
+            self.printidx(indices, l, str(bpa))
             if bpa is None:
                 return None
-        return bpa[indices[-1]]
+            _cache = _cache[i]['n']
+        b = bpa[indices[-1]]
+        print(("[t-%d] " %(item))+color.GREEN+str(indices)+color.END+" : "+str(b)+" : "+str(bpa))
+        return b
+    
+    def printidx(self, indices, i, postfix):
+        b = [str(j) for j in ([(" %02d" %(j)) for j in indices[0:i]] + [">%02d" %(indices[i])] + [(" %02d" %(j)) for j in indices[i+1:]]) ]
+        a = ",".join(b) + "  " + postfix
+        print (a)

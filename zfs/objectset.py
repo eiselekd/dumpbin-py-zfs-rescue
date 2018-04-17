@@ -102,6 +102,7 @@ class ObjectSet:
         if data is None:
             return None
         dnid = dnode_id % self._dnodes_per_block
+        print("[t-%d][d-%d]:" %(blockid,dnid))
         dnode = DNode(data=data[dnid*512:(dnid+1)*512], dnid=dnid, objset=self )
         return dnode
 
