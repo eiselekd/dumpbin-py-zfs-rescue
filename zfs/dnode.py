@@ -248,7 +248,7 @@ DNODE_FLAG_USED_BYTES=(1 << 0)
 
 class DNode:
 
-    def __init__(self, data=None, block_data=None, dnid=None, objset=None):
+    def __init__(self, data=None, block_data=None, dnid=None, objset=None, idxstr=""):
         self._data = None
         self._type = None  # uint8_t 1
         self._indblkshift = None  # uint8_t 1
@@ -271,6 +271,7 @@ class DNode:
         self._src_block_data = block_data
         self._src_dnid = dnid
         self._objset = objset
+        self._idxstr = idxstr
         if data is not None:
             self.parse(data)
 

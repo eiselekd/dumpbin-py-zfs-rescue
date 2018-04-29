@@ -30,6 +30,7 @@
 from zfs.objectset import ObjectSet
 from zfs.zap import zap_factory, TYPECODES, safe_decode_string
 from zfs.blocktree import BlockTree
+from zfs.blocktree import color
 from zfs.sa import SystemAttr
 from zfs.fileobj import FileObj
 from zfs.zio import dumppacket
@@ -154,7 +155,7 @@ class zfsnode():
             return
         self._cache_file = next(tempfile._get_candidate_names())
         print("[+] temporary file %s" %(self._cache_file))
-        self.dataset.extract_file(self.datasetid, self._cache_file)
+        self.dataset.extract_file(self.datasetid, self._cache_file,_abspath=self._abspath)
 
     def read(self, off, size):
         with open(self._cache_file, 'rb') as f:
@@ -313,7 +314,7 @@ class Dataset(ObjectSet):
         return zfsnode(self, r, 'd', -1, self._rootdir_id, 0, "/", inoderoot, 0, "")
 
     def readdir(self, dir_dnode_id, inoderoot, relpath):
-        print("r> %d" %(dir_dnode_id))
+        print("r> [%d] dir %s" %(dir_dnode_id,relpath))
         dir_dnode = self[dir_dnode_id]
         r = []
         if dir_dnode is None:
@@ -328,6 +329,7 @@ class Dataset(ObjectSet):
             print("[-]  Unable to create ZAP object")
             return []
         keys = sorted(zap.keys())
+        print("vvvvvvvv dir %s vvvvvvvvvvv" %(relpath))
         for name in keys:
             value = zap[name]
             t = value >> 60
@@ -336,7 +338,7 @@ class Dataset(ObjectSet):
             entry_dnode = self[v]
             if k == 'd' and not entry_dnode._type == 20:
                 print("Mismatch")
-            print("> %24s: %s : %d : %s" %(name, k, v, str(entry_dnode)))
+            print("%25s> %28s: %s : %s" %(entry_dnode._idxstr, color.PURPLE+name+color.END, k, str(entry_dnode)))
             mode = 0
             size = 0
             try:
@@ -345,6 +347,8 @@ class Dataset(ObjectSet):
             except:
                 pass
             r.append(zfsnode(self, entry_dnode, k, mode, v, size, name, inoderoot, v, relpath + "/" + name))
+        print("^^^^^^^^^^^^^^^^^^^^^^^^^^\n")
+            
         return r
 
     def export_file_list(self, fname, root_dir_id=None):
@@ -355,9 +359,18 @@ class Dataset(ObjectSet):
             csvwriter = csv.writer(csvfile, dialect="excel-tab")
             self._export_dir(csvwriter, root_dir_id)
 
-    def extract_file(self, file_node_id, target_path):
+    def extract_file(self, file_node_id, target_path,_abspath='undef'):
         print("[+]  Extracting object {} to {}".format(file_node_id, target_path))
         file_dnode = self[file_node_id]
+        
+        if file_dnode.blkptrs[0].empty and file_dnode.bonus.size() > 0:
+            f = open("problemfiles.txt", "a"); 
+            f.write("%s\n" %(_abspath))
+            f.close()
+            print("[+] Cannot extract %s : %s : sz:%d" %(_abspath,str(file_dnode),file_dnode.bonus.size()))
+            f = open(target_path, "wb"); f.close()
+            return False
+            
         bt = BlockTree(file_dnode.levels, self._vdev, file_dnode.blkptrs[0])
         num_blocks = file_dnode.maxblkid + 1
         f = open(target_path, "wb")
