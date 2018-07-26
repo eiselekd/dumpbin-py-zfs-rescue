@@ -157,6 +157,15 @@ class BonusZnode:
 
     def size(self):
         return self.zp_size
+    def mtime(self):
+        return self.zp_mtime
+    def mode(self):
+        return self.zp_mode
+    def uid(self):
+        return self.zp_uid
+    def gid(self):
+        return self.zp_gid
+    
     def __str__(self):
         fields = [
             'zp_atime', 'zp_atime_ns',
@@ -240,7 +249,15 @@ class BonusSysAttr:
             pass
     def size(self):
         return self.zpl_size
-
+    def mtime(self):
+        return self.zpl_mtime
+    def mode(self):
+        return self.zpl_mode
+    def uid(self):
+        return self.zpl_uid
+    def gid(self):
+        return self.zpl_gid
+    
     def __str__(self):
         pass
 
