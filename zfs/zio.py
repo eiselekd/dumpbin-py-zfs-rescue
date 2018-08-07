@@ -70,12 +70,13 @@ class GenericDevice:
         if bptr.get_dva(dva).gang:
             # TODO: Implement gang blocks
             raise NotImplementedError("Gang blocks are still not supported")
-        print("[>>] read: %s" %(str(bptr)))
+        print("[>>] read.dva(%d): %s" %(dva,str(bptr)))
         
         offset = bptr.get_dva(dva).offset
         asize = bptr.get_dva(dva)._asize # << 9
         psize = bptr.psize
         if offset == 0 and psize == 0:
+            print("[!] offset:%d psize:%d"%(offset,psize))
             return None,cksum
         lsize = bptr.lsize
         if self._verbose >= LOG_VERBOSE:
@@ -92,7 +93,7 @@ class GenericDevice:
             if bptr._cksum == 7 and DO_CHKSUM:
                 a,b,c,d = fletcher4(data[0:psize])
                 if not (a == bptr._checksum[0] and b == bptr._checksum[1] and c == bptr._checksum[2] and d == bptr._checksum[3]):
-                    print("expect:%016x:%016x:%016x:%016x" %(bptr._checksum[0],bptr._checksum[1],bptr._checksum[2],bptr._checksum[3]))
+                    print("expect:%016x:%016x:%016x:%016x (dva:%d)" %(bptr._checksum[0],bptr._checksum[1],bptr._checksum[2],bptr._checksum[3],dva))
                     print("got   :%016x:%016x:%016x:%016x" %(a,b,c,d))
                     cksum=False
 
@@ -108,8 +109,8 @@ class GenericDevice:
                 except:
                     data = None
                 if data is None:
-                    if self._verbose >= LOG_VERBOSE:
-                        print("[-]   Decompression failed")
+                    #if self._verbose >= LOG_VERBOSE:
+                    print("[-]   Decompression failed")
                     return None,cksum
             else:
                 if self._verbose >= LOG_VERBOSE:

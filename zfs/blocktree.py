@@ -52,6 +52,8 @@ class BlockTree:
             self._root = root_bptr
         else:
             self._root = self._load_from_bptr(root_bptr)
+            #if (self._root is None):
+            #    return None
             self._blocks_per_level = len(self._root)
             print("[+]  {} blocks per level".format(self._blocks_per_level))
 

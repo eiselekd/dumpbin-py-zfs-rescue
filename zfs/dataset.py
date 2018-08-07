@@ -155,7 +155,13 @@ class zfsnode():
             return
         self._cache_file = next(tempfile._get_candidate_names())
         print("[+] temporary file %s" %(self._cache_file))
-        self.dataset.extract_file(self.datasetid, self._cache_file,_abspath=self._abspath)
+        try:
+            self.dataset.extract_file(self.datasetid, self._cache_file,_abspath=self._abspath)
+        except:
+            f = open("problemfiles.txt", "a"); 
+            f.write("%s\n" %(self._abspath))
+            f.close()
+            print("[+] Cannot extract %s" %(self._abspath))
 
     def read(self, off, size):
         with open(self._cache_file, 'rb') as f:
@@ -362,13 +368,13 @@ class Dataset(ObjectSet):
     def extract_file(self, file_node_id, target_path,_abspath='undef'):
         print("[+]  Extracting object {} to {}".format(file_node_id, target_path))
         file_dnode = self[file_node_id]
+        f = open(target_path, "wb"); f.close()
         
         if file_dnode.blkptrs[0].empty and file_dnode.bonus.size() > 0:
             f = open("problemfiles.txt", "a"); 
             f.write("%s\n" %(_abspath))
             f.close()
             print("[+] Cannot extract %s : %s : sz:%d" %(_abspath,str(file_dnode),file_dnode.bonus.size()))
-            f = open(target_path, "wb"); f.close()
             return False
             
         bt = BlockTree(file_dnode.levels, self._vdev, file_dnode.blkptrs[0])
