@@ -22,11 +22,11 @@ gen-test:
 	sudo zpool export datapool
 	sudo bash gen1.sh
 
-gen-test:
+genone-test:
 	-sudo zpool export datapoolone
 	-sudo bash genone_1.sh
-	dd if=/dev/zero of=diskone0.bin bs=1024 count=$$((1024*64));
-	done
+	dd if=/dev/zero of=disk3.bin bs=1024 count=$$((1024*100))
+	sleep 0.5
 	sudo bash genone_0.sh
 	sudo bash genone_2.sh
 	sudo zpool export datapoolone
