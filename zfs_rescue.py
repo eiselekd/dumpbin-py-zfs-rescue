@@ -59,7 +59,7 @@ elif testdisks == "simple":
     BLK_INITIAL_DISK = "/dev/loop3"      # device to read the label from
     BLK_PROXY_ADDR = ("files:", "diskone.tab")  # local device nodes
     TXG = -1                                    # select specific transaction or -1 for the active one
-    DS_TO_ARCHIVE = [68]
+    DS_TO_ARCHIVE = [259]
 else:
     BLK_PROXY_ADDR = ("files:", "datatab.txt")  # local device nodes
     INITIALDISKS = [ "/dev/disk/by-id/ata-WDC_WD30EFRX-68EUZN0_WD-WCC4N1KPRKPX-part1", "/dev/disk/by-id/ata-WDC_WD30EFRX-68EUZN0_WD-WCC4N7ZXC1E0-part1" ]
@@ -138,7 +138,8 @@ datasets = {}
 for dva in range(3):
     try:
         mos = ObjectSet(pool_dev, root_blkptr, dvas=(dva,))
-    except:
+    except Exception as e:
+        print("[-] MOS read fail: %s" %(str(e)))
         continue
     for n in range(len(mos)):
         d = mos[n]

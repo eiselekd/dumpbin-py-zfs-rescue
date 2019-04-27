@@ -103,7 +103,7 @@ class Label:
             return list(map(lambda x: x['path'], self._nvlist['vdev_tree']['children']))
         except:
             # simple zfs pool
-            return list(self._nvlist['vdev_tree']['path'])
+            return list([self._nvlist['vdev_tree']['path']])
 
     def get_txg(self):
         return self._nvlist['txg']
