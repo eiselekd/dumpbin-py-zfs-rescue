@@ -2,7 +2,7 @@
 
 Fork of https://github.com/hiliev/py-zfs-rescue with the following improvements:
 
- * lz4 decompression
+ * lz4 and gzip decompression
  * fletcher4 cksum
  * first level child datasets
  * blkptr with embedded data
@@ -12,6 +12,7 @@ Fork of https://github.com/hiliev/py-zfs-rescue with the following improvements:
  * variable sectorsize
  * bugfixed
  * fuse (llfuse) interface for recovery
+ * raid0
 
 This make it possible to read datapools created via i.e.
 
