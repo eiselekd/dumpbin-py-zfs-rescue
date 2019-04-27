@@ -33,7 +33,8 @@ from block_proxy.proxy import BlockProxy
 from zfs.label import Label
 from zfs.dataset import Dataset
 from zfs.objectset import ObjectSet
-from zfs.zio import RaidzDevice             # or MirrorDevice
+from zfs.zio import RaidzDevice
+from zfs.zio import MirrorDevice
 from zfs.zap import zap_factory
 from zfs.fuse import mountpoint
 
