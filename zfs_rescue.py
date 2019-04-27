@@ -43,11 +43,17 @@ from os import path
 BLK_PROXY_ADDR = ("localhost", 24892)       # network block server
 
 SWITCHANALYZE=False
-testdisks=True #False
-if testdisks:
+testdisks="raidz1" #False
+if testdisks == "one" #"raidz1":
     INITIALDISKS = [ "/dev/loop0" ]
     BLK_INITIAL_DISK = "/dev/loop0"      # device to read the label from
     BLK_PROXY_ADDR = ("files:", "disks.tab")  # local device nodes
+    TXG = -1                                    # select specific transaction or -1 for the active one
+    DS_TO_ARCHIVE = [68]
+elif testdisks == "one":
+    INITIALDISKS = [ "/dev/loop3" ]
+    BLK_INITIAL_DISK = "/dev/loop3"      # device to read the label from
+    BLK_PROXY_ADDR = ("files:", "diskone.tab")  # local device nodes
     TXG = -1                                    # select specific transaction or -1 for the active one
     DS_TO_ARCHIVE = [68]
 else:
