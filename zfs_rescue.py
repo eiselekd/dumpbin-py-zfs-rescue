@@ -43,14 +43,17 @@ from os import path
 BLK_PROXY_ADDR = ("localhost", 24892)       # network block server
 
 SWITCHANALYZE=False
-testdisks="raidz1" #False
-if testdisks == "one" #"raidz1":
+#testdisks="raidz1" #"raidz1" #False
+#raidtype="raidz1"
+testdisks="simple"
+raidtype="simple"
+if testdisks == "raidz1":
     INITIALDISKS = [ "/dev/loop0" ]
     BLK_INITIAL_DISK = "/dev/loop0"      # device to read the label from
     BLK_PROXY_ADDR = ("files:", "disks.tab")  # local device nodes
     TXG = -1                                    # select specific transaction or -1 for the active one
     DS_TO_ARCHIVE = [68]
-elif testdisks == "one":
+elif testdisks == "simple":
     INITIALDISKS = [ "/dev/loop3" ]
     BLK_INITIAL_DISK = "/dev/loop3"      # device to read the label from
     BLK_PROXY_ADDR = ("files:", "diskone.tab")  # local device nodes
@@ -95,8 +98,10 @@ id_l.read(0)
 id_l.debug()
 all_disks = id_l.get_vdev_disks()
 
-pool_dev = RaidzDevice(all_disks, 1, BLK_PROXY_ADDR, bad=[0], ashift=id_l._ashift, repair=False, dump_dir=OUTPUT_DIR)
-# pool_dev = MirrorDevice(all_disks, BLK_PROXY_ADDR, dump_dir=OUTPUT_DIR)
+if raidtype == "raidz1":
+    pool_dev = RaidzDevice(all_disks, 1, BLK_PROXY_ADDR, bad=[0], ashift=id_l._ashift, repair=False, dump_dir=OUTPUT_DIR)
+else:
+    pool_dev = MirrorDevice(all_disks, BLK_PROXY_ADDR, dump_dir=OUTPUT_DIR)
 
 print("[+] Loading uberblocks from child vdevs")
 uberblocks = {}
