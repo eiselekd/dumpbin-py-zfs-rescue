@@ -31,6 +31,7 @@ from zfs.blockptr import fletcher4
 from block_proxy.proxy import BlockProxy
 from zfs.lzjb import lzjb_decompress
 from zfs.lz4zfs import lz4zfs_decompress
+from zfs.gzipzfs import gzip_decompress
 
 from os import path
 import struct;
@@ -48,9 +49,15 @@ class GenericDevice:
     COMP_TYPE_ON = 1
     COMP_TYPE_LZJB = 3
     COMP_TYPE_LZ4 = 15
+    COMP_TYPE_GZIP_1 = 5
+    COMP_TYPE_GZIP_5 = 9
+    COMP_TYPE_GZIP_9 = 13
     CompType = {
         COMP_TYPE_ON:   "LZJB",
         COMP_TYPE_LZJB: "LZJB",
+        COMP_TYPE_GZIP_1: "GZIP1",
+        COMP_TYPE_GZIP_5: "GZIP5",
+        COMP_TYPE_GZIP_9: "GZIP9",
         COMP_TYPE_LZ4:  "LZ4"
     }
     def __init__(self, child_devs, block_provider_addr, dump_dir="/tmp"):
@@ -100,17 +107,24 @@ class GenericDevice:
         if bptr.compressed:
             if bptr.comp_alg in GenericDevice.CompType:
                 if self._verbose >= LOG_VERBOSE:
-                    print("[+]  Decompressing with %s", GenericDevice.CompType[bptr.comp_alg])
+                    print("[+]  Decompressing with %s", bptr.comp_alg, GenericDevice.CompType[bptr.comp_alg])
                 try:
                     if (bptr.comp_alg == GenericDevice.COMP_TYPE_LZ4):
                         data = lz4zfs_decompress(data, lsize)
+                    elif (bptr.comp_alg == GenericDevice.COMP_TYPE_GZIP_1):
+                        data = gzip_decompress(data, lsize)
+                    elif (bptr.comp_alg == GenericDevice.COMP_TYPE_GZIP_5):
+                        data = gzip_decompress(data, lsize)
+                    elif (bptr.comp_alg == GenericDevice.COMP_TYPE_GZIP_9):
+                        data = gzip_decompress(data, lsize)
                     else:
                         data = lzjb_decompress(data, lsize)
-                except:
+                except Exception as e:
+                    print("[-] Decompress exception '%s'" %(str(e)))
                     data = None
                 if data is None:
                     #if self._verbose >= LOG_VERBOSE:
-                    print("[-]   Decompression failed")
+                    print("[-]   Decompression failed: %d" %(bptr.comp_alg))
                     return None,cksum
             else:
                 if self._verbose >= LOG_VERBOSE:

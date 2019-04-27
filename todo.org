@@ -1,4 +1,6 @@
 
+zdb -ddddddd datapool
+
 * switchbox_repo
  switchbox_repo: d : 24236154   : writing 
   

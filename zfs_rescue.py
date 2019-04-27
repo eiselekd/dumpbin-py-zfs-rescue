@@ -42,14 +42,14 @@ from os import path
 
 BLK_PROXY_ADDR = ("localhost", 24892)       # network block server
 
-SWITCHANALYZE=True
-testdisks=False 
+SWITCHANALYZE=False
+testdisks=True #False
 if testdisks:
     INITIALDISKS = [ "/dev/loop0" ]
     BLK_INITIAL_DISK = "/dev/loop0"      # device to read the label from
     BLK_PROXY_ADDR = ("files:", "disks.tab")  # local device nodes
     TXG = -1                                    # select specific transaction or -1 for the active one
-    DS_TO_ARCHIVE = [259]
+    DS_TO_ARCHIVE = [68]
 else:
     BLK_PROXY_ADDR = ("files:", "datatab.txt")  # local device nodes
     INITIALDISKS = [ "/dev/disk/by-id/ata-WDC_WD30EFRX-68EUZN0_WD-WCC4N1KPRKPX-part1", "/dev/disk/by-id/ata-WDC_WD30EFRX-68EUZN0_WD-WCC4N7ZXC1E0-part1" ]
