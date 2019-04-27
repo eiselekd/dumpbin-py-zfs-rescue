@@ -22,6 +22,17 @@ gen-test:
 	sudo zpool export datapool
 	sudo bash gen1.sh
 
+gen-test:
+	-sudo zpool export datapoolone
+	-sudo bash genone_1.sh
+	dd if=/dev/zero of=diskone0.bin bs=1024 count=$$((1024*64));
+	done
+	sudo bash genone_0.sh
+	sudo bash genone_2.sh
+	sudo zpool export datapoolone
+	sudo bash genone_1.sh
+
+
 unzip:
 	for i in `seq 0 2`; do \
 		bunzip2 -kf disk$${i}.bin.bz2; \
